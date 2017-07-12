@@ -1,0 +1,41 @@
+---
+title: Classifying Landing Pages with Mahout
+---
+
+<article id="content" class="zp-65">
+                <div class="padding">
+                    
+
+    
+
+    <p class="summary">
+        A basic (and probably not complete) step by step guide on how to classify text documents using the machine learning platform Mahout
+    </p>
+
+    <p>One time, after <a title="Scrapers are an Advertisers Best Friend" href="http://www.eanalytica.com/blog/scrapers-are-an-advertisers-best-friend">scraping a client site for extra data</a> I had a list of around 2000 long tail pages that I needed to create ad groups for. Creating the keywords was easy(ish); it was an exercise in munging together seed words extracted from the page headers with a standard list of targeted keywords. Writing the ad text was much harder; the landing pages covered very different topics and I wanted to customize the advert depending on the topic. Life is too short to look through 2000 pages and assign them to categories, but it is not too short to spend hours messing around with the machine learning platform Mahout.</p><p>I used Mahout to build a <a href="http://en.wikipedia.org/wiki/Naive_Bayes_classifier">naive bayes classifier</a> which would tell me which category a landing page was in based on the text on a landing page.</p><h3>1. Install Mahout</h3><p>There are <a href="https://cwiki.apache.org/MAHOUT/buildingmahout.html">Mahout install instructions</a> on their website.</p><h3>2. Prepare Training Data</h3><p>To train your model you need some data where you already know the classifications.</p><p>The tricky thing with Mahout is storing this stuff in a way that the program can understand. I extracted the page content to text files and then stored these files in directories named after the category:</p><table><tbody><tr><td>Category 1</td><td>Page 1</td></tr><tr><td><br /></td><td>Page 2</td></tr><tr><td><br /></td><td>. . .</td></tr><tr><td>Category 2</td><td>Page 1</td></tr><tr><td><br /></td><td>Page 2</td></tr><tr><td><br /></td><td>. . .</td></tr></tbody></table><h3>3. Training the Model</h3><p>What we are trying to do here is very similar to the <a href="https://cwiki.apache.org/MAHOUT/twenty-newsgroups.html">20 Newsgroups Example</a> that Mahout have already prepared for us. We can piggy back off their work by running the following commands:</p><pre>&lt;PATH TO MAHOUT&gt;/mahout org.apache.mahout.classifier.bayes.PrepareTwentyNewsgroups \
+  -p &lt;PATH TO TRAINING DATA&gt; \
+  -o &lt;PATH TO STORE OUTPUT&gt; \
+  -a org.apache.mahout.vectorizer.DefaultAnalyzer \
+  -c UTF-8</pre><p>The above command turns the data from our training set into a format that Mahout can use to train our model.</p><pre>&lt;PATH TO MAHOUT&gt;/mahout trainclassifier \
+  -i &lt;PATH TO DATA (OUTPUT FROM ABOVE)&gt; \
+  -o &lt;PATH TO STORE MODEL&gt; \
+  -type bayes \
+  -ng 1 \
+  -source hdfs
+</pre><p>This command might take a while to run but once it has then you have successfully trained your model!</p><h3>4. Testing the Model</h3><p>Prepare test data in the same way as you prepared the training data but instead of running the &quot;trainclassifier&quot; function do the following instead:</p><pre>&lt;PATH TO MAHOUT&gt;/mahout testclassifier \
+  -m &lt;PATH TO MODEL&gt; \
+  -d &lt;PATH TO TEST DATA&gt; \
+  -type bayes \
+  -ng 1 \
+  -source hdfs \
+  -method sequential</pre><p>This function will output a table telling you how accurate/useful your model is.</p><h3>5. Using the model</h3><p>I am having trouble with this step. Given a text file with the contents of a page you can classify it with this command:</p><pre>&lt;PATH TO MAHOUT&gt;/mahout org.apache.mahout.classifier.Classify \
+  -m &lt;PATH TO MODEL&gt; \
+  --classify &lt;PATH TO TEXT FILE TO CLASSIFY&gt; \
+  --encoding UTF-8 \
+  --analyzer org.apache.mahout.vectorizer.DefaultAnalyzer \
+  --defaultCat unknown \
+  -ng 1 \
+  -type bayes \
+  -source hdfs</pre><p>This outputs a load of logging information and the classification result which is not that useful if you want the results for more than one page. I'm worried I'd have to write some Java to get this to do what I want.</p><h3>Addendum</h3><p>It was always my plan to use this method in anger. However, when trying to outsource the generation of training data I found a freelancer who could do the whole list for $50.</p>
+	
+	</article>

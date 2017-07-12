@@ -1,0 +1,445 @@
+---
+title: Split Testing, Simpson's Paradox and Causation
+tags: testing,R,maths
+---
+
+<p>
+Consider the following split test results:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">Treatment</th>
+<th scope="col" class="right">Trials</th>
+<th scope="col" class="right">Conversions</th>
+<th scope="col" class="right">Conversion Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">A</td>
+<td class="right">4974</td>
+<td class="right">611</td>
+<td class="right">12.2%</td>
+</tr>
+
+<tr>
+<td class="left">B</td>
+<td class="right">5026</td>
+<td class="right">511</td>
+<td class="right">10.1%</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>
+This is a convincing victory for variation A (at least 95%
+confidence). But look what happens when we segment the test results
+by channel:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">Channel</th>
+<th scope="col" class="left">Treatment</th>
+<th scope="col" class="right">Trials</th>
+<th scope="col" class="right">Conversions</th>
+<th scope="col" class="right">Conversion Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">X</td>
+<td class="left">A</td>
+<td class="right">1991</td>
+<td class="right">64</td>
+<td class="right">3.2%</td>
+</tr>
+
+<tr>
+<td class="left">Y</td>
+<td class="left">A</td>
+<td class="right">2983</td>
+<td class="right">547</td>
+<td class="right">18.3%</td>
+</tr>
+
+<tr>
+<td class="left">X</td>
+<td class="left">B</td>
+<td class="right">2977</td>
+<td class="right">129</td>
+<td class="right">4.3%</td>
+</tr>
+
+<tr>
+<td class="left">Y</td>
+<td class="left">B</td>
+<td class="right">2049</td>
+<td class="right">382</td>
+<td class="right">18.6%</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+For each channel treatment B has performed better than treatment
+A. This is an example of <a href="https://en.wikipedia.org/wiki/Simpson's_paradox">Simpson's Paradox</a> which, as <a href="http://www.distilled.net/blog/conversion-rate-optimization/why-your-cro-tests-fail/">Will Critchlow
+points out</a>, can lead to problems in split testing when traffic from
+different channels is not quite evenly distributed between the
+different treatments.
+</p>
+
+<p>
+In this blog post I will discuss a potential way around this problem.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> A very brief introduction to Causation and DAGs.</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The nature of cause and effect is a tricky philosophical problem and
+I am not familiar enough with all the ins and outs to give a succinct
+treatment here. So here is a whirlwind of bullet points to get
+started with
+</p>
+
+<ul class="org-ul">
+<li>Causes have effects and vice-versa. An effect cannot be it's own
+cause
+</li>
+<li>If the probability distributions for two events are
+<a href="http://en.wikipedia.org/wiki/Conditional_independence">conditionally independent</a> then there can be no causal link between
+them.
+</li>
+<li>Cause and effect relationships can be modelled as a Directed
+Acyclic Graph (DAG) where a directed edge from node A to node B
+indicates a causative relationship between A and B (A causes B in
+some sense). The graph needs to be acyclic otherwise you might end
+up with strange loops where A causes B which causes C which causes
+A.
+</li>
+<li>If you have a DAG you can use science to determine if it is a
+correct model or not (when I say science I mean the methodology of
+experimentation/observation). But if you don't have a DAG in mind
+science won't help you come up with one.
+</li>
+<li>Instead you can start by assuming edges between all variables and
+then start removing edges based on conditional independence
+tests. This gives the skeleton of a DAG (i.e. no directed edges)
+</li>
+<li>Some edges can be directed using further conditional independence
+tests.
+</li>
+</ul>
+
+<p>
+I am not doing this justice at all, so back to split testing.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Back to split testing</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+So normally, when we run a split test we have the following causal
+structure in our heads:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-dot"> digraph G {
+  size="4,3"
+  ratio=expand
+  treatment[label="Treatment"]
+  conversion[label="Conversion"]
+  treatment-&gt;conversion
+}
+</pre>
+</div>
+
+<p>
+This is unrealistic and as we saw in the example it can cause
+problems.
+</p>
+
+<p>
+When we also consider the traffic source there are three new graphs
+to consider:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-dot"> digraph G {
+  size="4,3"
+  ratio=expand
+  treatment[label="Treatment"]
+  conversion[label="Conversion"]
+  source[label="Source"]
+  treatment-&gt;conversion
+}
+</pre>
+</div>
+
+<p>
+The first case is simple; the traffic source makes no difference to
+the conversion rate and the only thing that does is the treatment
+group of the user.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-dot"> digraph G {
+  size="4,3"
+  ratio=expand
+  treatment[label="Treatment"]
+  conversion[label="Conversion"]
+  source[label="Source"]
+  treatment-&gt;conversion
+  source-&gt;conversion
+}
+</pre>
+</div>
+
+<p>
+In the second case both the treatment and the source of the traffic
+influence the conversion rate. Normal statistical tests for
+significance will still give the right answer here because there is
+no confoundation between the source and the treatment.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-dot"> digraph G {
+  size="4,3"
+  ratio=expand
+  treatment[label="Treatment"]
+  conversion[label="Conversion"]
+  source[label="Source"]
+  treatment-&gt;conversion
+  source-&gt;conversion
+  source-&gt;treatment
+}
+</pre>
+</div>
+
+<p>
+It is in the third case where Simpson's Paradox (and general problems
+with how your split test is setup) occur.
+</p>
+
+<p>
+The R library <a href="http://cran.r-project.org/web/packages/pcalg/pcalg.pdf%E2%80%8E">pcalg</a> can be used to infer causal structure from raw
+data. Installing pcalg is a little more complicated than for most R
+libraries but there are clear instructions <a href="http://vserver1.cscs.lsa.umich.edu/~crshalizi/weblog/914.html">here</a>.
+</p>
+
+<p>
+The following code examples create simulated data and then use pcalg
+to compute the skeleton of the causal graph.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(pcalg)
+completelyRandom &lt;- function() {
+  s &lt;- sample(0:1, 10000, T)
+  t &lt;- sample(0:1, 10000, T)
+  equalConversion &lt;- function(source,treatment) {
+    r &lt;- runif(1, 0, 1)
+    return(r&lt;0.1) #10% conversion rate for all
+  }
+  c &lt;- mapply(equalConversion, s, t)
+  df &lt;- data.frame(source=s, treatment=t, conversion=c)
+  suffStat &lt;- list(dm=df, nlev=c(2,2,2), adaptDF=FALSE)
+  pc.fit &lt;- skeleton(suffStat, indepTest = disCItest, p = ncol(df), alpha = 0.05)
+  plot(pc.fit, main = "No Relationship At All", labels=c("Channel","Treatment","Conversion"))
+}
+completelyRandom()
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-07-19-no-relationship.png" alt="2013-07-19-no-relationship.png" />
+</p>
+</div>
+
+<p>
+The data is random so the skeleton shows no causal relationship
+between any of the variables.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(pcalg)
+treatmentEffect &lt;- function() {
+  s &lt;- sample(0:1, 10000, T)
+  t &lt;- sample(0:1, 10000, T)
+  convert &lt;- function(source,treatment) {
+    r &lt;- runif(1, 0, 1)
+    if(treatment) {
+      return(r&lt;0.1) } #Treatment 1 10% conversion rate
+    else {return(r&lt;0.05) } #Treatment 2 5% conversion rate
+  }
+  c &lt;- mapply(convert, s, t)
+  df &lt;- data.frame(source=s, treatment=t, conversion=c)
+  suffStat &lt;- list(dm=df, nlev=c(2,2,2), adaptDF=FALSE)
+  pc.fit &lt;- skeleton(suffStat, indepTest = disCItest, p = ncol(df), alpha = 0.05)
+  plot(pc.fit, main = "Treatment Influences Conversion", labels=c("Channel","Treatment","Conversion"))
+}
+treatmentEffect()
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-07-19-treatment-effect.png" alt="2013-07-19-treatment-effect.png" />
+</p>
+</div>
+
+<p>
+This could be used instead of a normal split test - if there is an
+edge between Treatment and Conversion in the graph then there is a
+significant difference between treatments.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(pcalg)
+sourceAndTreatmentEffect &lt;- function() {
+  s &lt;- sample(0:1, 10000, T)
+  t &lt;- sample(0:1, 10000, T)
+  convert &lt;- function(source,treatment) {
+    r &lt;- runif(1, 0, 1)
+    if(source &amp;&amp; treatment) {
+      return(r&lt;0.2) }
+    else if (source &amp;&amp; !treatment) {
+      return(r&lt;0.1)}
+    else if (!source &amp;&amp; !treatment) {
+      return(r&lt;0.05)}
+    else {return(r&lt;0.01) }
+  }
+  c &lt;- mapply(convert, s, t)
+  df &lt;- data.frame(source=s, treatment=t, conversion=c)
+  suffStat &lt;- list(dm=df, nlev=c(2,2,2), adaptDF=FALSE)
+  pc.fit &lt;- skeleton(suffStat, indepTest = disCItest, p = ncol(df), alpha = 0.05)
+  plot(pc.fit, main = "Both Source and Treatment Influence Conversion", labels=c("Channel","Treatment","Conversion"))
+}
+sourceAndTreatmentEffect()
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-07-19-source-treatment-effect.png" alt="2013-07-19-source-treatment-effect.png" />
+</p>
+</div>
+
+<p>
+And finally there is something similar to the case given in the
+example where the traffic source influences the treatment:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(pcalg)
+biasedTreatment &lt;- function() {
+  s &lt;- sample(0:1, 10000, T)
+  treatment &lt;- function(source) {
+    r &lt;- runif(1, 0, 1)
+    if(source) {
+      return(r&lt;0.4) }
+    else {
+      return(r&lt;0.6)}
+  }
+  t &lt;- sapply(s, treatment)
+  convert &lt;- function(source,treatment) {
+    r &lt;- runif(1, 0, 1)
+    if(source &amp;&amp; treatment) {
+      return(r&lt;0.2) } #source 1, treatment 1 converts 20%
+    else if (source &amp;&amp; !treatment) {
+      return(r&lt;0.18)} #source 1, treatment 0 converts 18%
+    else if (!source &amp;&amp; !treatment) {
+      return(r&lt;0.03)} #source 0, treatment 0 converts 3%
+    else {return(r&lt;0.05) } #source 0, treatment 1 converts 5%
+  }
+  c &lt;- mapply(convert, s, t)
+  df &lt;- data.frame(source=s, treatment=t, conversion=c)
+  suffStat &lt;- list(dm=df, nlev=c(2,2,2), adaptDF=FALSE)
+  pc.fit &lt;- skeleton(suffStat, indepTest = disCItest, p = ncol(df), alpha = 0.05)
+  plot(pc.fit, main = "Source Influences Treatment", labels=c("Channel","Treatment","Conversion"))
+}
+biasedTreatment()
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-07-19-biased-treatment.png" alt="2013-07-19-biased-treatment.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Where to go from here</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Running tests using this causal framework is a way to avoid tests
+being confounded without having to run AABB tests or anything like
+that.
+</p>
+
+<p>
+Run the test data through the skeleton function from pcalg and
+observe the graph. If there is no link between source and treatment
+(or whatever additional variables you consider) and the graph has an
+edge between treatment and conversion then the test is good.
+</p>
+
+<p>
+Any link between source and conversion indicates that it might be
+worth factoring the results by source; it could be that different
+variations work better with different traffic sources. Sometimes it
+will be practical to take advantage of this but sometimes it will be
+over segmentation.
+</p>
+
+<p>
+In the case where the source variable is linked with the treatment
+variable it is necessary to split out the data into a table with more
+columns (as in the example) before deciding on a course of
+action. Or, if you are confident that the test is setup properly then
+just wait for the link to disappear as more data comes in.
+</p>
+</div>
+</div>

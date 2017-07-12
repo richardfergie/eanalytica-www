@@ -1,0 +1,140 @@
+---
+title: Use Social Media to Iterate on Content Quality
+tags: social,iterate,lean
+---
+
+<p>
+What is social media good for? Absolutely nothing? When measured
+directly social media tends to perform poorly when compared to other
+channels but to some this is an essential channel with <b>obvious</b>
+benefits.
+</p>
+
+<p>
+People who evaluate social media on a direct response basis have a
+model in their head like this:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-dot">digraph G {
+  size="3,1"
+  ratio="expand"
+  social-&gt;revenue
+}
+</pre>
+</div>
+
+<p>
+But I think that if you took a company that was absolutely brilliant
+at engaging their audience through social channels and then banned
+them from Facebook, Twitter etc. they would still do well. These
+companies have the rare gift of being able to create content that
+engages their audience and that is valuable even without social media.
+</p>
+
+<p>
+So now we have a model like this:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-dot">digraph G {
+  size="5,3"
+  ratio="expand"
+  content-&gt;social
+  social-&gt;revenue [style = dotted label="weak link    "]
+  content-&gt;revenue
+}
+</pre>
+</div>
+
+<p>
+"But wait!" you say, "is there really a such a strong link between
+good content that does well on social media and good content that
+generates revenue? Last time I looked squeeze pages were not the great
+content that everyone talks about"
+</p>
+
+<p>
+Mostly the people talking about great content in the little filter
+bubble I live in are SEOs and they like great content because people
+link to it.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-dot">digraph G {
+  size="6,4"
+  ratio="expand"
+  content-&gt;social
+  social-&gt;revenue [style = dotted]
+  content-&gt;revenue [style = dotted]
+  content-&gt;links
+  links-&gt;rankings
+  rankings-&gt;traffic
+  traffic-&gt;revenue
+}
+</pre>
+</div>
+
+<p>
+Now social media looks pretty cut off from the actual money side of
+things; this is not the point I'm trying to make. To get to the
+conclusion I need to make one big assumption:
+</p>
+
+<p>
+<b>People who link to stuff and people who share things on social
+ networks like the same type of content</b> 
+</p>
+
+<p>
+To me this seems like a reasonable assumption, but I'm still looking
+for data to back it up (or contradict it).
+</p>
+
+<p>
+Please notice that I'm not saying that social media shares caused
+links or that links cause social media shares. I'm saying that the
+rate at which people share and the rate at which people link are
+correlated because of a common cause; the quality of the content.
+</p>
+
+<p>
+Linking is a comparatively rare thing and you can expect link rates of
+below 0.01%. It is touch to optimise for an event that is so rare: You
+end up never getting meaningful results because the sample sizes are
+so small.
+</p>
+
+<p>
+When this happens with a conversion event rather than a link event
+(for example if you sell something really expensive) people optimise
+for micro-conversions; proxy events which occur more frequently but
+which have an affinity for the main conversion event.
+</p>
+
+<p>
+I propose that social shares are a useful proxy metric or
+micro-conversion for the main event; getting a link.
+</p>
+
+<p>
+If this view is accurate it has the following benefits:
+</p>
+<ul class="org-ul">
+<li>Social shares are generally quite easy to measure
+</li>
+<li>They happen fast; generally within a day or two of the content going
+live
+</li>
+<li>These two points put you in a great position to move through the
+build-&gt;measure-&gt;optimise cycle
+</li>
+</ul>
+
+<p>
+Being able to rapidly iterate on ideas is key for online
+businesses. By using social shares as a proxy metric the same
+processes that produce winning PPC campaigns and killer landing pages
+can be used to create content that engages the audience you want to
+engage with.
+</p>

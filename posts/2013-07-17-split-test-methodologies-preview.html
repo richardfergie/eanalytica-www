@@ -1,0 +1,79 @@
+---
+title: Simulating split test methodologies
+tags: testing
+---
+
+<p>
+At the moment I'm looking at different split testing protocols and
+trying to decide which one is best. This is going to be quite a big
+piece of work and I have lots more ideas to look at and "what if's"
+to answer.
+</p>
+
+<p>
+In this post I'm just going to share a couple of charts showing the
+results of various testing methodologies. I haven't actually tested
+the tests (so to speak). Instead I have written a simulator which
+allows me to check lots of different ideas more quickly. The
+simulator is not 100% accurate (of course) - I'm still figuring out
+if it is inaccurate in any important ways. 
+</p>
+
+
+<div class="figure">
+<p><img src="./files/2013-07-17-anova.png" alt="2013-07-17-anova.png" />
+</p>
+</div>
+
+<p>
+This chart shows what happens when different p values are used in
+testing. I have also included a random strategy (pick which variation
+to pause at random) and also a cheating strategy which knows which
+version is actually the best and always chooses that one.
+</p>
+
+<p>
+As you can see the p value used doesn't make much difference unless
+you are aiming for a very accurate test (p=0.01). This is because the
+errors made by the less accurate tests are more than cancelled out by
+the faster decisions.
+</p>
+
+
+<div class="figure">
+<p><img src="./files/2013-07-17-bandits.png" alt="2013-07-17-bandits.png" />
+</p>
+</div>
+
+<p>
+I first heard about using bandits for website optimisation in
+<a href="http://stevehanov.ca/blog/index.php?id=132">Steve Hanov's</a> blog post on the subject. Coding this bandit is
+relatively easy (labelled as "Naive Bandit" on the chart). Steve does
+not address when to pause or add new variations. The "ANOVA bandit"
+is a bandit that pauses poorly performing variations with p=0.1. The
+"Bandit Always Add" adds new variations at every opportunity and
+never pauses anything.
+</p>
+
+<p>
+For comparison I have included ANOVA with p value 0.1 from the
+previous chart as well as the Random and Cheating strategies.
+</p>
+
+<p>
+So from this little snippet of information I suggest the following:
+</p>
+
+<ol class="org-ol">
+<li>Don't worry too much about p values. Anything between 80% and 95%
+confidence will be about right.
+</li>
+<li>Use a bandit where possible. The one described in Steve Hanov's
+blog post outperforms a random traffic allocation and (I think)
+doesn't ruin the validity of the split test.
+</li>
+<li>Focus resources on producing more variations. If these charts show
+anything it is that if you have the resources to throw enough shit
+at the wall then a bandit can focus on the parts that stick.
+</li>
+</ol>

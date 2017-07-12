@@ -1,0 +1,308 @@
+---
+title: Machine Learning and Feature Selection/Discovery
+tags:
+---
+
+<blockquote class="twitter-tweet"><p><a href="https://twitter.com/RichardFergie">@RichardFergie</a> I can&#39;t believe it&#39;s not possible to build a structure mathematically to help discover patterns - maybe not ML but needed.</p>&mdash; Craig Sullivan (@OptimiseOrDie) <a href="https://twitter.com/OptimiseOrDie/statuses/388648247415144449">October 11, 2013</a></blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<p>
+Today I had a very interesting Twitter conversation with <a href="http://www.linkedin.com/in/craigsullivan">Craig
+Sullivan</a> on the subject of automatically recognising pertinent
+features when looking at data.
+</p>
+
+<p>
+Craig is hoping for some kind of system where everything is dumped in
+and the machine can figure out which bits are important. This kind of
+thing can be done already with many supervised and unsupervised
+learning algorithms but these generally suffer from <a href="https://en.wikipedia.org/wiki/Curse_of_dimensionality">the curse of
+dimensionality</a> as the number of features increase.
+</p>
+
+<p>
+So that is one reason why Craig's algorithmic dream is hard; machine
+learning off data with large number of features requires far more
+data (and therefore time/money) than machine learning on a smaller
+feature set.
+</p>
+
+<p>
+Sometimes the size of the feature set can be reduced by ignoring
+parts of the data; for example stripping the minutes or seconds
+information out of a timestamp or by removing the last digits of an
+IP address. This data can be important - it depends on the context -
+so in some circumstances it should be left in. The important thing to
+realise is that it is human input that is reducing the dimensions
+here, not the algorithm.
+</p>
+
+<p>
+The other way to reduce the dimensions is to pre-process some
+data. This could mean computing time on page by taking the difference
+between two timestamps or by tagging a user as "young" based on a
+combination of their cookies or referral data. This data processing
+could be combined with the learning algorithm as part of a larger
+scheme but the decision of what processing should be done again comes
+from human input.
+</p>
+
+<p>
+There have been <a href="http://www.wired.com/science/discoveries/magazine/16-07/pb_theory">some developments</a> in systems that try to figure out
+how to process data in order to improve machine learning performance
+but I think these are not yet practical in general; if you think you
+suffer from the curse of dimensionality to start with imagine how
+much worse it gets when you add dimensions for all possible functions
+on combinations of features.
+</p>
+
+<p>
+I hope I have convinced you that this approach is not practical in
+full generality.
+</p>
+
+<p>
+I have two more specific examples with things that I've been working
+on recently that illustrate some of the above points.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> What causes ranking changes?</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Everyone in the SEO world loves correlation studies and they also
+love saying "correlation is not causation". So something is a bit odd
+about that.
+</p>
+
+<p>
+Correlation is not causation, but correlations can tell you a bit
+about causation and the causal structure of what is being measured. I
+keep meaning to blog more explanations of how this works because I
+think this is extremely important (or maybe just extremely
+interesting; I have difficulty separating the two).
+</p>
+
+<p>
+Anyway, Moz recently released a lot of correlation data as part of
+their <a href="http://moz.com/search-ranking-factors">ranking factors study</a>. I decided to run some causal discovery
+algorithms over this to see what came out:
+</p>
+
+
+<div class="figure">
+<p><img src="./files/pc-moz.png" alt="pc-moz.png" />
+</p>
+</div>
+
+<p>
+In this graph each node represents a feature in the Moz data. Arrows
+between nodes show causation with the node at the head of the arrow
+being caused by the node at the tail. For arrows with two heads the
+algorithm was unable to determine the direction of the causation.
+</p>
+
+<p>
+The graph has been pruned to only include nodes that are connected to
+another node (but I did this after running the algorithm; it only
+changes how the data is displayed).
+</p>
+
+<p>
+A few things to note from the graph:
+</p>
+<ol class="org-ol">
+<li>Position (i.e. ranking) apparently causes a site to have an exact
+match domain name
+</li>
+<li>Having an exact match domain causes an exact match .com domain
+(this should be the other way around)
+</li>
+<li>All the nodes are to do with URL structure and domain names -
+there is nothing about links or on page content; I'm going to go
+out on a limb and say this is a problem with my analysis rather
+than with how SEOs have been doing their jobs for years.
+</li>
+</ol>
+
+<p>
+Just chucking a load of data into the algorithm has not got me the
+insights I wanted. Perhaps a better algorithm or more data would
+help. But the algorithm used is fairly cutting edge (especially when
+it comes to open source implementations). 727,419 data points might
+not be enough to be perfect, but it should be enough to do better
+than this.
+</p>
+
+<p>
+I've got a few ideas for improvement:
+</p>
+<ul class="org-ul">
+<li>It is possible to state that some edges exist before the algorithm
+runs. These edges can then be used to infer the position and
+direction of other edges while the algorithm runs. Doing this will
+mean that I can say "Having an exact match .com domain causes you
+to have an exact match domain" which will fix a lot of the
+weirdness.
+</li>
+<li>Similarly I can also specify pairs of nodes for which there
+shouldn't be a link. This will mean that I can prevent ranking from
+appearing to cause all kinds of onsite changes (although the "rich
+get richer" nature of link building means I won't be able to do
+this for all offsite features).
+</li>
+<li>The algorithm assumes normal distributions for all variables. This
+is extremely inaccurate for link metrics and I think this is why no
+link features occur in the graph. I can fix this once I've figured
+out a non-parametric test for conditional independence.
+</li>
+</ul>
+
+<p>
+Are these points just evidence of a poor algorithm? I'd only go as
+far as to say that the last point <i>might</i> point to this. I know it is
+possible to test for different types of distribution and choose an
+independence test based on the results.
+</p>
+
+<p>
+To algorithmically figure out the first two points would either need
+some kind of AI to learn about SEO so that the additional context
+could be provided (currently it is not provided ahahaha) or we need
+an improved causal structure detecting algorithm in the first place.
+</p>
+
+<p>
+Hopefully in a few weeks I will be able to point to some results that
+show human feature selection and processing combined with algorithmic
+insight can give useful results in this area.
+</p>
+
+<p>
+Now onto my second example:
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Grouping skills</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+I do some work every week for a charity called <a href="http://www.keyfund.org.uk">Keyfund</a> to help them
+improve their impact using data. This doesn't really involve any web
+data so this part might end up full of charity sector jargon; I'll
+try and explain as I go and not get too caught up in the ins and outs
+of exactly what Keyfund do.
+</p>
+
+<p>
+Keyfund asks the young people they work with to self evaluate
+themselves (scores out of ten) on twelve skills before and after the
+intervention. This is one of the ways we measure the impact of an
+intervention.
+</p>
+
+<p>
+Currently the skills are divided into three groups called "self",
+"task" and "relationship".
+</p>
+
+<p>
+We would like to help facilitators (the people who work directly with
+the young people) improve their interventions by making them aware of
+areas where their young people make the most progress and where they
+make the least. The hypothesis is that some facilitators are good at
+fostering relationship skills (for example) but not others.
+</p>
+
+<p>
+There is just one problem with this; the self assessment data from
+the young people does not support the division of skills into these
+groups. By which I mean a young person rating themselves highly on
+"searching for information" (a task skill) tells you very little
+about how they rate themselves for "solving problems" (another task
+skill). Correlations between skills are not higher for skills in the
+same group so saying that a facilitator is good as relationship
+skills is meaningless.
+</p>
+
+<p>
+I took it upon myself to find new skill groupings that are backed up
+by the data.
+</p>
+
+<p>
+This chart is the end result
+</p>
+
+
+<div class="figure">
+<p><img src="./files/skillsclusters.png" alt="skillsclusters.png" />
+</p>
+</div>
+
+<p>
+The chart is a projection of the many dimensional data set onto the
+two principle components. The two principle components are dimensions
+chosen to highlight/maximise the "spread" of data - it is as if they
+were made for plotting charts with.
+</p>
+
+<p>
+When you look at it like this the new clusters clearly make more
+sense than the old:
+</p>
+
+
+<div class="figure">
+<p><img src="./files/keyfundclusters.png" alt="keyfundclusters.png" />
+</p>
+</div>
+
+<p>
+But they make sense mainly in the context of two dimensions where I
+can't easily explain what the dimensions are (they will be something
+like 0.5*solveproblems - 6*negotiate + 3.2*copestresstension +&#x2026;).
+</p>
+
+<p>
+This means it is hard to describe in exactly what sense the new
+groupings are better. I'm also at a loss when it comes to figuring
+out the mechanism that causes the skills to be grouped in this way.
+</p>
+
+<p>
+This also makes it difficult to name the skill groupings which is
+pretty important when it comes to explaining the results and getting
+it accepted in the rest of the organisation.
+</p>
+
+<p>
+There are two problems here:
+</p>
+<ul class="org-ul">
+<li>To plot the groupings I have used a feature processing algorithm
+which makes the plot clearer. However the processed features
+(whilst having good predictive power) do not correspond with
+anything in the real world.
+</li>
+<li>The algorithm has provided the groupings but it has not provided me
+with any insight into the mechanism that caused them.
+</li>
+</ul>
+
+<p>
+Some of these are problems that can occur with any type of machine
+learning but others are specifically to do with the "chuck it all in
+and let the algorithm figure it out" approach.
+</p>
+
+<p>
+In both of these examples the problem is that I've used a very
+general approach. I hope that in both cases I can get more useful
+results by considering more carefully the unique structure and
+context of the problem being solved before selecting and applying an
+algorithm.
+</p>
+</div>
+</div>

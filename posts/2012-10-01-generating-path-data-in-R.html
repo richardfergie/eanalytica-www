@@ -1,0 +1,144 @@
+---
+title: Generating user touchpoint data in R
+tags: R,attribution
+---
+
+<p>
+Right now I'm thinking quite a lot about multitouch marketing (not
+going to use the word attribution for now). I have a few ideas that I
+want to explore around modelling user behaviour. Validating models in
+this area is pretty tricky, so I'm going to play around with some toy
+models first and see how far I get.
+</p>
+
+<p>
+The advantage of using a toy model is that I know the underlying structure
+so I'll know if I'm getting it right or not. In real life there are
+fewer guarantees that the answer I'm getting will be correct.
+</p>
+
+<p>
+Let's start off with a really simple model.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Simple model</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+There are three channels A, B and C. The following rules apply:
+</p>
+
+<ol class="org-ol">
+<li>Whenever a user touches channel C they convert.
+</li>
+<li>A user who touches channel A has a 50% chance of next appearing
+through channel C and a 50% chance of next appearing through
+channel B.
+</li>
+<li>A user who touches channel B has a 50% chance of next appearing
+through channel C and a 50% chance of never visiting the site
+again.
+</li>
+</ol>
+
+<p>
+Graphically, this looks like this:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-dot" id="paths"> digraph G {
+  size="8,6"
+  ratio=expand
+  A-&gt;C[label="50%"]
+  A-&gt;B[label="50%"]
+  B-&gt;C[label="50%"]
+  B-&gt;vanish[label="50%"]
+  C-&gt;convert[label="100%"]
+}
+</pre>
+</div>
+
+<p>
+Now I want to use this model to generate a lot of user paths of the
+form A-&gt;B-&gt;vanish, B-&gt;C-&gt;convert, C-&gt;convert etc.
+</p>
+
+<p>
+I have the following R code which can simulate this data:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-R">nexttouch &lt;- function(current){
+  if (current=="C") {
+    return("convert")
+  } else if (current=="A") {
+    if (runif(1)&lt;0.5) return("C") else return("B")
+  } else {
+    if (runif(1)&lt;0.5) return("C") else return("vanish")
+  }
+}
+
+userpath &lt;- function(start){
+ current=start
+ path=c(current)
+ while (current!="vanish" &amp;&amp; current!="convert") {
+    current&lt;-nexttouch(current)
+    path&lt;-c(path,current)
+    }
+ return(path)
+}
+</pre>
+</div>
+
+<p>
+Now lets generate some data by putting 1000 users into each of the
+three channels:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">listC &lt;- lapply(list("C"),rep,1000)
+listB &lt;- lapply(list("B"),rep,1000)
+listA &lt;- lapply(list("A"),rep,1000)
+paths&lt;-lapply(c(listB[[1]],listA[[1]],listC[[1]]),userpath)
+</pre>
+</div>
+
+<p>
+The maximum length path is A-&gt;B-&gt;C-&gt;convert so I know that there are
+at most three touches.
+</p>
+
+<p>
+For each channel say if it is included in the path
+</p>
+<div class="org-src-container">
+
+<pre class="src src-R">containschannel &lt;- function(channel,path) {
+   return(is.element(channel,path))
+}
+
+includes &lt;- data.frame(C=unlist(lapply(paths,function(x) containschannel("C",x)))
+                      ,A=unlist(lapply(paths,function(x) containschannel("A",x)))
+                      ,B=unlist(lapply(paths,function(x) containschannel("B",x)))
+                      ,convert=unlist(lapply(paths,function(x) containschannel("convert",x)))
+                      )
+</pre>
+</div>
+
+<p>
+We can use the <i>includes</i> data frame to calculate conditional
+probabilities.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">conditional &lt;- function(channel,condition){
+   c &lt;- sum(includes$channel==TRUE)
+   i &lt;- sum(includes$channel==TRUE &amp;&amp; condition==TRUE)
+   return(i/c)
+}
+</pre>
+</div>
+</div>
+</div>

@@ -1,0 +1,148 @@
+---
+title: Determining the true value of paid search
+tags: adwords,ppc
+---
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> The experiment you never dare run</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The esteemed Matt Van Wagner wrote a very interesting article on
+Search Engine Land titled <a href="http://searchengineland.com/the-ppc-experiment-you-never-dare-run-172325">The PPC Experiment You Never Dare Run</a>. He
+describes the PPC nuclear option of turning off all adverts and then
+observing the effect on overall revenue.
+</p>
+
+<p>
+This does help answer the question "Why are we paying for this
+traffic? Aren’t we going to get that traffic anyway?" but a couple of
+problems spring to mind straight away (I'm sure Matt is aware of
+these):
+</p>
+
+<ol class="org-ol">
+<li>The nuclear option is not a good one to take; there is a massive
+opportunity cost involved in figuring stuff out this way.
+</li>
+<li>It is not a true experiment because some external event forced the
+change: "Campaigns that had been running for a few years were taken
+offline abruptly three months ago". This means that the results of
+the experiment could be confounded by whatever external factor
+caused the campaigns to go offline in the first place. For
+example, some companies cut marketing budgets during a recession
+and restore them afterwards; in this case we would see site
+revenue drop whilst PPC was turned off even if PPC had no overall
+impact on the site.
+</li>
+</ol>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Ebay and paid search effectiveness</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Both of these problems were avoided by Ebay in their March 2013 study
+<a href="http://conference.nber.org/confer/2013/EoDs13/Tadelis.pdf">Consumer Heterogeneity and Paid Search Effectiveness: A Large Scale
+Field Experiment</a>. Which, in paid search circles, went down only a
+little bit better than a house on fire because of the poor impression
+it gives of the channel.
+</p>
+
+<p>
+Regardless of whether or not Ebay use PPC well I think the
+methodology behind the study is excellent. Here are the basic ideas
+(details in section 4.1 of the linked document):
+</p>
+
+<ol class="org-ol">
+<li>Divide the target geography into separate areas. Ebay used the
+Neilsen Designated Market Areas for this.
+</li>
+<li>Randomly select a subset of these areas to be candidates for the
+test. This is done to reduce risk and make this less of a nuclear
+option.
+</li>
+<li>Out of the candidates pair up the areas based on how similar they
+are.
+</li>
+<li>Randomly select one from each pair to be the control and one from
+each pair to be the experiment.
+</li>
+<li>Stop all advertising in the experiment areas.
+</li>
+<li>Compare the results for these areas with the controls.
+</li>
+</ol>
+
+<p>
+For Ebay this resulted in them stopping paid search activity in
+roughly 30% of regions which, to me, still seems like quite a high
+number; perhaps not the full nuclear option but definitely a dirty
+bomb or chemical attack on revenue.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Can we get the rigour without the opportunity cost?</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+There will always be some opportunity cost to running this type of
+experiment (so weigh the value of the knowledge gained
+carefully). But it is possible to run a similar experiment with lower
+risk.
+</p>
+
+<p>
+The variable that determines the risk is the percentage of people who
+end up in and experiment area - if you only turn off advertising for
+a small mountain village then the opportunity cost is very low. This
+must be balanced with getting enough data to be confident about any
+conclusions.
+</p>
+
+<p>
+Here are the levers we can pull:
+</p>
+<ul class="org-ul">
+<li>We control the number of candidates for the experiment. Increasing
+this number increases the exposure to risk and decreasing it
+reduces the opportunity cost of the experiment.
+</li>
+<li>Instead of pairing up candidate areas the candidates can be
+partitioned into larger groups from which only one is assigned to
+the experiment. If candidates are grouped into fives than only 20%
+of the candidates end up in the experimental group. This method
+also has some extra robustness built in as during the experiment it
+is possible to check that the control areas are still similar.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> The experiment you should consider running?</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+AdWords makes it easy to prevent ads from running in selected areas
+so as far as I can tell these are the only reasons not to:
+</p>
+
+<ol class="org-ol">
+<li>There are more important things to do.
+</li>
+<li>You are confident in the value of paid search.
+</li>
+<li>The risk of losing even a small amount of revenue is too much
+</li>
+<li>Partitioning the areas is hard
+</li>
+</ol>
+
+<p>
+Point number four is probably the only one I can help with - look out
+for more information on time series clustering in the future.
+</p>
+</div>
+</div>

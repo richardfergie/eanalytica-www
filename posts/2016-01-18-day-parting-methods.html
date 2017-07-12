@@ -1,0 +1,67 @@
+---
+title: Do different ways of day parting make a difference? 
+tags: ppc,adwords
+---
+<p>
+I was recently fortunate enough to get in a <a href="https://www.reddit.com/r/PPC/comments/412r8x/adwords_dayparting_for_timezones/cyzfuha">conversation with Mike Roberts of SpyFu on AdWords day parting</a>.
+</p>
+
+<p>
+Mr Roberts points out that the database behind AdWords is almost certainly "eventually consistent" which means
+that a change accepted by the database may not be reflected in all nodes until some time has past. So the Google
+data centre in the UK may know about your changes but the one in Japan might not. NB: This isn't just to do with
+geographical distance; it also can apply within a single data centre.
+</p>
+
+<p>
+This would mean that making a change in AdWords will not be reflected in the auction instantly.
+</p>
+
+<p>
+I pointed out that "eventually consistent" databases are usually consistent within seconds; an amount of time
+that is inconsequential for most advertisers.
+</p>
+
+<p>
+Roberts is not convinced by my arguments and suggests that 30 minutes is a reasonable timescale for changes to 
+peculate throughout Google's system - but this is more to do with batching calculations together rather than
+delays in the underlying database technology.
+</p>
+
+<p>
+This reasoning seems plausible to me but I would guess the delay is much lower.
+</p>
+
+<p>
+Either way, we are in the situation where Google batches some calculations together and that these are only done
+at intervals. What does this mean for day parting methods?
+</p>
+
+<p>
+Right now, I use a mixture of scripts and the API for running day parting schemes. I'm not doing anything really
+complicated here and I'd guess that 90% of what I'm doing could be managed in the simple day parting interface
+in the campaign settings.
+</p>
+
+<p>
+When my scripts make bid/status changes, Google doesn't know what these are going to be until the script runs. 
+Then we need to wait for the next batch processing job to run before the changes are reflected in the auction.
+</p>
+
+<p>
+Compare this with using the simple day parting interface; in this case Google knows exactly what changes are
+going to happen and when the changes need to be in the auction. The batch processing can then be scheduled 
+accordingly.
+</p>
+
+<p>
+I hypothesise that using the campaign settings for day parting rather than an equivalent script will give slightly
+better results ("better" in this case means "closer to what you intended to happen") with the magnitude of the 
+improvement depending on how often the batch job is run; once per hour = big difference; once per second = not much
+difference at all.
+</p>
+
+<p>
+Scripts and the API allow far more flexible tactics than the simple day parting settings. This must be considered when
+deciding which option to use.
+</p>

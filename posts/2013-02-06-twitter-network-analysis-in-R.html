@@ -1,0 +1,94 @@
+---
+title: Twitter Network Analysis in R
+tags: social,R
+---
+
+<p>
+One of the most popular posts on here is to do with analysing a social
+network and finding the most influential community members:
+<a href="http://www.eanalytica.com/blog/pagerank-of-ppcchat-participants/">The PageRank of #PPCChat participants</a> The code for the project was
+written in Python, but I've recently written a new version using R. R
+is a worse language in my opinion, but the number and variety of
+libraries is amazing so it is worth learning.
+</p>
+
+<p>
+Here is the R source code:
+</p>
+
+<p>
+Start by loading some libraries. Stringr for regex support and igraph
+to do the heavy lifting.
+</p>
+
+<p>
+Also specify the location where the TSV file of tweet data is stored.
+#+BEGIN<sub>SRC</sub> R
+library(stringr)
+library(igraph)
+</p>
+
+<p>
+location = "/tmp/data/ppcchat.tsv"
+#+END<sub>SRC</sub> R 
+</p>
+
+<p>
+Load the TSV file. 'stringsAsFactors=FALSE' forces the tweets to be loaded
+as a string rather than as a factor. Factor is an R data type for
+discrete values.
+</p>
+
+<p>
+Initialise an empty list of edges.
+#+BEGIN<sub>SRC</sub> R
+raw &lt;- read.csv("ppcchat.tsv", header=FALSE, sep='\t',stringsAsFactors=FALSE)
+edges &lt;- c()
+#+END<sub>SRC</sub> R
+</p>
+
+<p>
+Now iterate through the list of tweets and build a list of edge
+pairs. raw$V3 contains the text of all the tweets. raw$V10 contains
+the username of the person tweeting.
+#+BEGIN<sub>SRC</sub> R
+for (i in 1:length(raw$V3)) {
+  #Extract the usernames from the tweets
+  mentions = unlist(str<sub>extract</sub><sub>all</sub>(tolower(raw$V3[i]),"@[a-z0-9<sub>]</sub>{2,15}"))
+  if (length(mentions)!=0) {
+    for (j in 1:length(mentions)) {
+      if(raw$V10[i]!="" &amp;&amp; substring(mentions[j],2)!="") { #needed for when parser borks
+        edges=c(edges,c(tolower(raw$V10[i]),substring(mentions[j],2)))
+      }
+     }
+  }
+}
+#+END<sub>SRC</sub> R
+</p>
+
+<p>
+Turn this into an adjacency matrix and create the graph
+#+BEGIN<sub>SRC</sub> R
+edgematrix &lt;- t(matrix(edges,nrow=2))
+g &lt;- graph.edgelist(edgematrix)
+#+END<sub>SRC</sub> R
+</p>
+
+<p>
+I have found that you get far better results from this kind of thing
+when loops are removed from the graph. This means ignoring tweets
+where a person mentions themselves.
+#+BEGIN<sub>SRC</sub> R
+for (i in 1:length(g[,1])){
+  g[i,i] = 0
+}
+#+END<sub>SRC</sub> R
+</p>
+
+<p>
+Finally, calculate PageRank and return the top ten
+#+BEGIN<sub>SRC</sub> R
+pr&lt;-page.rank(g,directed=TRUE)
+topten &lt;- sort(pr$vector,decreasing=TRUE)[1:10]
+#+END<sub>SRC</sub> R
+</p>

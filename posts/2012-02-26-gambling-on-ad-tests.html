@@ -1,0 +1,33 @@
+---
+title: Gambling on Ad Tests
+---
+
+<article id="content" class="zp-65">
+                <div class="padding">
+                    
+
+    
+
+    <p class="summary">
+        &quot;Set ad serving to rotate&quot; is a regularly heard piece of AdWords advice. I do not use this setting for all campaigns and in this post I hope to explain why.
+    </p>
+
+    <p>Imagine that you are in a casino and that you want to make money as quickly as possible playing the bandits. Also assume that you are in the kind of imaginary casino where it is actually possible to make money playing the slots. There are 10 different machines you could play, what is your strategy?
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-2-26-5873815259_35861cfd6f_b.jpg.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>To begin with you have no data on any of the machines so you will have to play all of them at least once. After that strategies get more complicated. Your strategy must decide between <em>expoiting</em> the machine that you think has the best payout and <em>exploring</em> the other machines in case the machine you think is the best actually isn't</p><p>Here are some example strategies:</p><ol><li>Pick the first machine in line and only play that machine. Obviously flawed in that no exploration is done at all.</li><li>Play each machine once and then play the machine with the highest payout. Flawed in that the machine you think pays out the highest may only seem the best because of random chance.</li><li>Play each machine <em>n</em> times and then play the machine with the highest average payout. Slightly better. But if <em>n</em> is too low then this strategy suffers from the same weakness as 2. If <em>n</em> is too high then you have wasted money exploring when you should have been exploiting.</li><li>Play each machine equally until one machine has reached &quot;statistical significance&quot; and then play only that machine. <a href="http://www.evanmiller.org/how-not-to-run-an-ab-test.html" target="_blank">It is difficult to monitor an ongoing test without ruining the test from a statistical standpoint</a>. Basically you should be fixing the sample size in advance which makes this strategy the same as 3. If you don't, either your test is not as significant as you thought (pretend for this discussion that this is a DISASTER) or you have avoided repeated significance testing errors but your test has run for longer than it could have done meaning you spent too much time exploring and not enough time exploiting.</li></ol><p>There is a better way. Statisticians and decision theorists have come up with many strategies to beat the &quot;multi armed bandit&quot; problem. The <a href="http://en.wikipedia.org/wiki/Multi-armed_bandit" target="_blank">wikipedia article</a> on the topic has a good overview.</p><p>Enough gambling. Back to PPC</p><p>You probably know where I'm going with this - an split test as run by most people is strategy 3 or 4 from above but to make the most money one of the bandit optimization strategies should be used. When you choose &quot;Optimize for Clicks&quot; or &quot;Optimize for Conversions&quot; Google uses their own bandit optimization strategy on your behalf. Personally, I think their algorithm is too conservative when it comes to giving impressions to a new ad, but I still believe that they make my clients more money than even rotation.</p><h3>My Ad Serving Strategy
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-2-26-141120161_9521d05685_b.jpg.jpg"></img>
+			
+		</figure>	
+	
+
+</h3><ul><li>Head campaigns are run on even rotation ad serving. Volumes are high enough and stable enough here that I can run valid tests quickly. I may lose a bit of revenue by not using a more perfect strategy but I gain in knowledge. Split testing allows for testing of hypotheses which is not possible with bandit optimization.</li><li>Body/Tail campaigns are run on &quot;Optimize for Conversions&quot;. I am not really testing here (but maybe I should be), I just want to make money. Results and knowledge about the audience from the head campaign experiments filter down and are applied here.</li></ul><p>This seems to be striking a good balance between exploration, exploitation and making everything to damn complicated. I hope it has given you some ideas.</p><p>Thanks to Untyped for inspiring this post with their article <a href="http://untyped.com/untyping/2011/02/11/stop-ab-testing-and-make-out-like-a-bandit/">Stop A/B Testing and Make Out Like a Bandit</a></p>
+	
+	</article>

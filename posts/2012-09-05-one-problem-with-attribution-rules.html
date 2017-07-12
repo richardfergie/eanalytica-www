@@ -1,0 +1,187 @@
+---
+title: One (of Many) Problems With Attribution Rules
+tags: attribution
+---
+
+<p>
+Currently attributing revenue between multiple touch points on a
+user's journey to purchase involves using some kind of rule to split
+the credit up based on the order in which touch points occur. Example
+rules are:
+</p>
+<ul class="org-ul">
+<li>Last click
+</li>
+<li>First click
+</li>
+<li>Equal split (each touch point gets equal credit)
+</li>
+<li>Some other order based split e.g. first touch gets 50% with even
+weighting for the other touch points.
+</li>
+</ul>
+
+<p>
+You can also add channel specific rules:
+</p>
+<ul class="org-ul">
+<li>If AdWords is involved at any stage it gets 100% of the credit
+(i.e. the AdWords conversion tracking rule)
+</li>
+<li>After a brand channel is used and subsequent touch points get 0%
+</li>
+</ul>
+<p>
+This type of rule doesn't help with the strawman I'm building here so
+I'm going to revisit them later.
+</p>
+
+<p>
+Now we are going to make some simplifying assumptions about a
+hypothetical online business. These assumptions will be used to make a
+model which is easy to reason about and experiment with.
+</p>
+
+<p>
+Here are the rules:
+</p>
+<ul class="org-ul">
+<li>Users can only arrive at the site through search, display or
+social. No distinction will be made between brand and non-brand
+search.
+</li>
+<li>Every user visits the site exactly three times before either
+purchasing or vanishing forever.
+</li>
+<li>If a user visits the site through display on any one of their three
+visits then they will convert on their last visit.
+</li>
+<li>If a user never arrives via display then they will never convert.
+</li>
+</ul>
+
+<p>
+So the path to purchase/vanishing for ever looks like this:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-dot" id="user-paths"> digraph G {
+  size="8,6"
+  ratio=expand
+  display1[label="display"]
+  display1-&gt;display2
+  display1-&gt;search2
+  display1-&gt;social2
+  search1[label="search"]
+  search1-&gt;display2
+  search1-&gt;search2
+  search1-&gt;social2
+  social1[label="social"]
+  social1-&gt;display2
+  social1-&gt;search2
+  social1-&gt;social2
+  display2[label="display"]
+  display2-&gt;display3
+  display2-&gt;social3
+  display2-&gt;search3
+  search2[label="search"]
+  search2-&gt;display3
+  search2-&gt;search3
+  search2-&gt;social3
+  social2[label="social"]
+  social2-&gt;display3
+  social2-&gt;search3
+  social2-&gt;social3
+  display3[label="display"]
+  display3-&gt;conversion
+  search3[label="search"]
+  search3-&gt;conversion
+  search3-&gt;vanish
+  social3[label="social"]
+  social3-&gt;conversion
+  social3-&gt;vanish
+}
+</pre>
+</div>
+
+<p>
+Another assumption:
+</p>
+<ul class="org-ul">
+<li>At each visit a user is equally likely to use any one of the three
+channels.
+</li>
+</ul>
+
+<p>
+Next we put 6000 people in at the top of the funnel (2000 in each
+channel). What happens next?
+</p>
+
+<p>
+At each step a user has a 2/3 chance of not using display so after the
+third interaction (2/3)<sup>3</sup>=8/27=30% (approx) will not have clicked a
+display advert. By our assumption that a user converts if and only if
+they interact with display we get 4200 conversions in total.
+</p>
+
+<p>
+There are 27 different ways of interacting with the three channels
+over three visits.
+</p>
+
+<p>
+Let's apply a few attribution models to these results and see what
+they tell us:
+</p>
+<ul class="org-ul">
+<li>First click: Each channel is attributed with 1400 conversions
+</li>
+<li>Last click: 19 of our 27 paths convert and of these, nine have
+display as the last interaction. So display gets attributed with
+9/19 of the conversions (1990 approx). By symmetry the other
+conversions are split equally between search and social (1105 each).
+</li>
+<li>Even attribution: On our 19 converting paths there are 57
+interactions (multiply!). Display represents 27 of these with search
+and social being 15 each. So under this model display gets 27/57 of
+the credit, 1990 conversions, with search and social each having
+1105 conversions each.
+</li>
+</ul>
+
+<p>
+All these models are poor because they attribute credit to channels
+that don't deserve it. The correct model in this case is to attribute
+100% of the credit to display.
+</p>
+
+<p>
+The question is, how do we know that this is the right thing to do
+without knowing what the model is? How can we see that display is the
+only channel causing conversions just by looking at the user path
+data?
+</p>
+
+<p>
+And don't forget, that this is an easy example; anything that touches
+display converts. The problem gets a lot harder when things are less
+black and white.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Further things to consider</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+I said right at the start that I was constructing a strawman argument
+and I think I've been quite successful at this; I've made my model in
+such a way that time based or touch order based attribution models
+won't get the desired result.
+</p>
+
+<p>
+You need to decide if the reason these models fail is realistic or if
+it is just a product of my unrealistic assumptions.
+</p>
+</div>
+</div>

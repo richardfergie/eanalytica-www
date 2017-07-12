@@ -1,0 +1,171 @@
+---
+title: Why Have a Static Site Using Hakyll?
+tags: hakyll, haskell, blogging, meta
+---
+
+<p>
+As my "hello world" for this site I thought I'd talk a little
+bit about the technology running the site and my reasons for choosing
+it.
+</p>
+
+<p>
+This website is a collection of static files served by <a href="http://nginx.org">Nginx</a>. There is
+no database, and no php, python or any other programming language
+performing any kind of content creation or request routing.
+</p>
+
+<p>
+Choosing to run a static site in this age of wordpress, tumblr and
+Google+ may seem like an odd decision. But static sites have certain
+advantages and there are some new techniques and technologies which
+make working with them much easier.
+</p>
+
+<p>
+I will first answer the question "why a static site?" and then move
+onto explaining my choice of site generator (<a href="http://jaspervdj.be/hakyll/">Hakyll</a>).
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Why a Static Site?</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Static websites have a couple of advantages over dynamic, database
+driven applications:
+</p>
+<ul class="org-ul">
+<li>No need to setup a database which makes them simpler to run and host
+</li>
+<li>Easier to scale. Nginx can deal with thousands of concurrent
+connections when serving static files.
+</li>
+<li>More security. There is much less that can go wrong with a static
+website; the attack surface is smaller.
+</li>
+</ul>
+
+<p>
+All these are good reasons, but they were not enough to convince
+me. At the kind of scale I operate at worrying about thousands of
+users is premature optimisation and I am already running databases and
+dynamic applications elsewhere.
+</p>
+
+<p>
+Two things turned me on to the idea of a static website. Then when I
+found out that a static website could still look good and be easy to
+update I was sold. The two things were:
+</p>
+<ul class="org-ul">
+<li><a href="http://dcurt.is/codename-svbtle">Codename: Svbtle</a> by dcurtis made me realise how blogging and content
+creation workflows can improve both the quality of content and the ease
+with which it is produced.
+</li>
+<li><a href="http://orgmode.org">Org Mode</a> is primarily the world's best todo list app and this is how
+I first came across it. However, it may also be the world's best
+tool for any sort of writing. Period. I find using org mode for
+drafting and organising very easy and very productive.
+</li>
+</ul>
+
+<p>
+I had found my desired work flow: I want to blog using org mode.
+</p>
+
+<p>
+At the time, I was using <a href="http://zotonic.com">Zotonic</a> partly to learn a bit of Erlang and
+partly because I really quite liked it as a CMS. I tried to figure out
+a way to use org-publish (an org mode utility to convert org mode
+files to HTML and other formats) and the Zotonic API to publish text files
+straight to Zotonic. This turned out to be beyond me.
+</p>
+
+<p>
+Next I looked for another CMS which would allow me to publish from org
+mode. Googling turned up two main candidates:
+</p>
+<ul class="org-ul">
+<li>org-publish which is part of org mode. The easiest to integrate, but
+I wasn't sure how flexible it would be.
+</li>
+<li><a href="https://github.com/mojombo/jekyll/wiki">Jekyll</a>
+</li>
+</ul>
+<p>
+Both of these solutions were static site generators.
+</p>
+
+<p>
+In the end I chose neither of these and went with a third option:
+Hakyll, a Haskell library for generating static sites.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Why Hakyll?</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The main reason is that customising Hakyll uses Haskell which is the
+programming language I know best. This meant that I felt confident
+that I would (eventually) be able to get the site to do what I wanted.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> How it all works</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+I have a folder called "eanalytica" within which are several
+subfolders:
+</p>
+<ul class="org-ul">
+<li>Folders containing "static" files like images, css and javascript
+</li>
+<li>A templates folder
+</li>
+<li>A posts folder
+</li>
+</ul>
+
+<p>
+The main folder also contains a Haskell program called "site" that is
+written using the Hakyll library.
+</p>
+
+<p>
+When I run the "site" program it uses the contents of the posts folder
+and the templates to generate the static HTML files which it places in
+a folder called "<sub>site</sub>". Then all I have to do is upload the _site
+folder to my web server. You can read the source code to my
+<a href="http://www.eanalytica.com/site/">Hakyll site generator</a> if you want to find out a bit more about how
+this works. The <a href="http://jaspervdj.be/hakyll/">official Hakyll site</a> also has some documentation.
+</p>
+
+<p>
+So now my blogging workflow looks like this:
+</p>
+<ol class="org-ol">
+<li>Create a new blog post using org mode.
+</li>
+<li>Use org-publish to turn this post into HTML and place it in the
+"posts" directory of my Hakyll site folder
+</li>
+<li>Run the "site" program to update all the _site folder
+</li>
+<li>Upload any changes to the _site folder to my web server.
+</li>
+</ol>
+
+<p>
+In fact, it is even simpler than that because three of the above four
+steps can be automated.
+</p>
+
+<p>
+I'm only one post in, but already I like my new workflow.
+</p>
+</div>
+</div>

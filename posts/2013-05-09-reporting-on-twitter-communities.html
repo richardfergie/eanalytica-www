@@ -1,0 +1,309 @@
+---
+title: Twitter Communities Reporting
+tags: knitr,R,ppcchat 
+---
+
+<p>
+Those of you who know me know that I'm a fan of the <a href="https://twitter.com/search?q=#ppcchat">#PPCChat hashtag</a>
+on twitter although I haven't participated recently due to my <a href="http://www.eanalytica.com/blog/a-personal-update/">change
+in circumstances</a>. 
+</p>
+
+<p>
+I have created a <a href="http://www.eanalytica.com/ppcchat/">#PPCChat community dashboard</a> which (should) update
+weekly. This blog post shows how the dashboard is made.
+</p>
+
+<p>
+For a while now I have been gathering every tweet
+on the #PPCChat hashtag using the following Ruby script:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-ruby">#!/usr/bin/ruby
+require 'tweetstream'
+require 'csv'
+
+TweetStream.configure do |config|
+  config.consumer_key       = 'SECRET'
+  config.consumer_secret    = 'SECRET'
+  config.oauth_token        = 'SECRET'
+  config.oauth_token_secret = 'SECRET'
+  config.auth_method        = :oauth
+end
+
+@client = TweetStream::Client.new
+
+@client.on_limit do |skip_count|
+  puts "Rate limited. Waiting for 5 minutes"
+  sleep 360
+end
+
+@client.on_enhance_your_calm do
+  puts "Enhancing calm. Waiting for 5 minutes"
+  sleep 360
+end
+
+@client.track('ppcchat') do |status|
+  today = Time.new.strftime("%Y-%m-%d")
+  row = [status.created_at,
+         status.id,
+         status.text.dump,
+         status.source,
+         status.truncated,
+         status.in_reply_to_status_id,
+         status.in_reply_to_user_id,
+         status.in_reply_to_screen_name,
+         status.user.id,
+         status.user.screen_name,
+         status.user.name
+         ]
+  c = CSV.open("data/"+today+".tsv", "a", {:col_sep =&gt; "\t"}) do |csv|
+    csv &lt;&lt; row
+  end
+end
+</pre>
+</div>
+
+<p>
+The script uses the <a href="https://dev.twitter.com/docs/streaming-apis">streaming api</a> and you will have to <a href="https://dev.twitter.com/apps">register your
+own Twitter application</a> in order to get the oauth tokens and secrets
+needed to use it. The script uses the excellent and easy to use
+<a href="https://github.com/intridea/tweetstream">TweetStream</a> gem.
+</p>
+
+<p>
+The output is a directory full of TSV files with each file being
+named after the day of data it contains.
+</p>
+
+<p>
+We can use the statistical programming language R to do some analysis
+of these networks.
+</p>
+
+<p>
+First we load some libraries and read in the tweets. The variable
+"location" is where all the tweets are stored.
+</p>
+
+<p>
+Then we create a variable "time" which has the day each tweet
+occurred.
+</p>
+
+<p>
+Finally we define a function "filterByDate" which does exactly what
+you might think.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(lubridate)
+
+raw &lt;- read.csv(location, header=FALSE, sep='\t',stringsAsFactors=FALSE)
+
+raw$time &lt;- ymd(substring(raw$V1,1,10))
+
+filterByDate &lt;- function(startdate, enddate) {
+  return(subset(raw, time &gt;= startdate &amp; time &lt; enddate))
+}
+</pre>
+</div>
+
+<p>
+Then we start messing about with with the <a href="http://cran.r-project.org/web/packages/igraph/index.html">igraph library</a> that can be used
+to analyse networks.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(igraph)
+library(stringr)
+library(xtable)
+
+graphByDate &lt;- function(startdate, enddate) {
+  tweets &lt;- filterByDate(startdate,enddate)
+  edges = c()
+
+  for (i in 1:length(tweets$V3)) {
+    mentions = unlist(str_extract_all(tolower(tweets$V3[i]),"@[a-z0-9_]{2,15}"))
+    if (length(mentions)!=0) {
+      for (j in 1:length(mentions)) {
+        if(tweets$V10[i]!="" &amp;&amp; substring(mentions[j],2)!="") { #needed for when parser borks
+          edges=c(edges,c(tolower(tweets$V10[i]),substring(mentions[j],2)))
+        }
+      }
+    }
+  }
+
+  edgematrix &lt;- t(matrix(edges,nrow=2))
+
+  g &lt;- graph.edgelist(edgematrix)
+
+  #remove self links
+  for (i in 1:length(g[,1])){
+    g[i,i] = 0
+  }
+
+  V(g)$indegree &lt;- degree(g, v=V(g), mode="in")
+  g.noweirdos &lt;- delete.vertices(g,V(g)[ indegree == 0 ])
+  return(g.noweirdos)
+}
+
+pageRankByDate &lt;- function(startdate,enddate) {
+  g &lt;- graphByDate(startdate,enddate)
+  pr &lt;- page.rank(g,directed=TRUE)
+  return(pr)
+}
+
+pr0 &lt;- pageRankByDate(now()-weeks(1),now())
+pr0 &lt;- data.frame(pr0$vector)
+pr0$name&lt;-row.names(pr0)
+pr1 &lt;- pageRankByDate(now()-weeks(2),now()-weeks(1))
+pr1 &lt;- data.frame(pr1$vector)
+pr1$name&lt;-row.names(pr1)
+prlist &lt;- merge(pr0,pr1,all=TRUE)
+prlist$pr1.vector[is.na(prlist$pr1.vector)] &lt;- 0
+prlist$pr0.vector[is.na(prlist$pr0.vector)] &lt;- 0
+
+prlist &lt;- data.frame(Name=prlist$name, "Last week"=prlist$pr0.vector, "Week before"=prlist$pr1.vector)
+
+top20pr &lt;- prlist[ order(-prlist$Last.week), ][1:20,]
+colnames(top20pr)&lt;-c("Name","PageRank Last Week","PageRank Preceeding Week")
+print(xtable(top20pr), type="html", include.rownames = FALSE)
+</pre>
+</div>
+
+<p>
+We can also draw a picture of these relationships:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(ggplot2)
+library(scales)
+radian.rescale &lt;- function(x, start=0, direction=1) {
+           c.rotate &lt;- function(x) (x + start) %% (2 * pi) * direction
+           c.rotate(rescale(x, c(0, 2 * pi), range(x)))
+         }
+
+g &lt;- graphByDate(now()-weeks(1),now())
+pr &lt;- page.rank(g,directed=TRUE)
+V(g)$page.rank &lt;- pr$vector
+V(g)$label &lt;- V(g)$name
+cutoff &lt;- -1*sort(-pr$vector)[20]
+g.top20 &lt;- delete.vertices(g,V(g)[ page.rank &lt; cutoff ])
+layout &lt;- layout.circle(g.top20)
+lab.locs &lt;- radian.rescale(x=1:20, direction=-1, start=0)
+plot(g.top20,
+     layout=layout,
+     vertex.size=300*V(g.top20)$page.rank,
+     vertex.label.dist=1,
+     vertex.label.degree=lab.locs,
+     vertex.frame.color=NA,
+     edge.arrow.size=0.5)
+</pre>
+</div>
+
+<p>
+Another interesting thing to look at is which links are the most popular
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(RCurl)
+library(XML)
+
+extractLinks &lt;- function(tweettext) {
+  links&lt;-c()
+  content&lt;-c()
+  urls &lt;- str_extract_all(tweettext,"http://t.co/[a-zA-Z0-9]+")
+  if (length(urls[[1]])==0) {
+    return(data.frame(links=NA,content=NA))
+  }
+  else {
+    for (i in 1:length(urls[[1]])) {
+        url &lt;- urls[[1]][i]
+        h &lt;- getCurlHandle()
+        n &lt;- tryCatch({
+                getURL(url, curl=h, followlocation=T)
+             },
+             error=function(e){ return("") }
+             )
+        i &lt;- getCurlInfo(h)
+        links&lt;-c(links,i$effective.url)
+        content&lt;-c(content,n)
+    }
+    return(data.frame(links=links,content=content,stringsAsFactors=FALSE))
+  }
+}
+
+getLinksByDate &lt;- function(startdate,enddate) {
+  acc&lt;-NULL            
+  tweets &lt;- filterByDate(startdate,enddate)
+  for (i in 1:length(tweets$V3)) {
+    l&lt;-extractLinks(tweets$V3[i])
+    acc&lt;-rbind(acc,l)
+  }
+  return(subset(acc,!is.na(links)))
+}
+
+getTitle &lt;- function(htmlsrc) {
+  tryCatch({
+    doc &lt;- htmlParse(htmlsrc)
+    title &lt;- xpathApply(doc, "//title[1]", xmlValue)
+    return(title[1])
+    },
+    error=function(e) {
+      return(NA)
+    })
+}
+
+links&lt;-getLinksByDate(now()-weeks(1),now())
+links$title &lt;- NA
+for (i in 1:length(links$content)) {
+  links$title[i] &lt;- getTitle(links$content[i])
+}
+links$count &lt;- 1
+keys &lt;- unique(links$links)
+vals &lt;- sapply(keys, function(x) { sum(links[links$links==x,]$count) })
+toptenlinks &lt;- names(sort(-vals)[1:10])
+toptentitles &lt;- c()
+for (i in 1:10) {
+  title &lt;- subset(links, links == toptenlinks[i])[1,]$title
+  toptentitles &lt;- c(toptentitles,title)
+}
+linked &lt;- ifelse(is.na(toptentitles),
+                 paste("&lt;a href=\"", toptenlinks, "\"&gt;", toptenlinks, "&lt;/a&gt;"),
+                 paste("&lt;a href=\"", toptenlinks, "\"&gt;", toptentitles, "&lt;/a&gt;")
+                )
+final &lt;- data.frame(link=linked)
+print(xtable(final), type="html", sanitize.text.function=force,include.rownames=F,include.colnames=F)
+</pre>
+</div>
+
+
+
+<p>
+And, of course, what kind of tweet analysis would be complete without
+a wordcloud?
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(tm)
+library(wordcloud)
+
+tweets &lt;- filterByDate(now()-weeks(1),now())$V3
+tweets &lt;- str_replace_all(tweets,"http://t.co/[a-zA-Z0-9]+","")
+corp &lt;- Corpus(VectorSource(tweets))
+corp &lt;- tm_map(corp, stripWhitespace)
+corp &lt;- tm_map(corp, tolower)
+corp &lt;- tm_map(corp, removeWords, stopwords("english"))
+corp &lt;- tm_map(corp, removeWords, c("#ppcchat", "ppcchat", "http://t.co/"))
+corp &lt;- tm_map(corp, removePunctuation)
+wordcloud(corp,colors=brewer.pal(8,"Set2"),rot.per=0.35,scale=c(6,1),max.words=80)
+</pre>
+</div>

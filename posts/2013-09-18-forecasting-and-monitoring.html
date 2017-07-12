@@ -1,0 +1,152 @@
+---
+title: The essence of monitoring is forecasting
+tags: analytics,R,forecasting,monitoring
+---
+
+<p>
+At the most recent #MeasureCamp <a href="http://www.clearclues.com">Carmen Mardiros</a> did a presentation on
+<a href="http://www.clearclues.com/google-analytics-api-monitor-ecommerce-health/">monitoring ecommerce health</a>. I didn't see this presentation because I
+was unable to be at #MeasureCamp but the blog post is interesting,
+worth a read, and hopefully gives a complete enough picture of what
+she was saying.
+</p>
+
+<p>
+At #MeasureCamp number two I gave a presentation with some ideas for
+marketers to prioritise which areas to investigate by having some
+idea of <a href="http://www.eanalytica.com/files/WhatsHappeningMeasureCamp.pdf">what's happening</a>. Combining some of my old ideas from that
+presentation with Carmen's more in depth thoughts has lead me to
+conclude that accurate forecasts are very important for web analysts
+looking to monitor and respond to changes.
+</p>
+
+<p>
+We look (always along actionable dimensions) for things that are a
+bit odd or different; these provide the questions that lead to
+insights and improvements. But doing this requires an understanding
+of what is normal; what should this value be at this point in time?
+</p>
+
+<p>
+Good forecasts help provide part of this answer.
+</p>
+
+<p>
+But making a good forecast is not always that simple.
+</p>
+
+<p>
+Here is a really simple forecast done with some real visit data (held
+in the variable "raw")
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">#load forecast library
+library(fpp)
+library(ggplot)
+
+#Convert visits data to a timeseries
+visits &lt;- ts(raw$Visits, frequency=1)
+
+basicforecast &lt;- forecast(visits)
+plot(basicforecast, xlim=c(800,850), xlab="Days", ylab="Visits", main="")
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-09-18-basicforecast.png" alt="2013-09-18-basicforecast.png" />
+</p>
+</div>
+
+<p>
+The blue line is the expected value, the dark grey area is an 80%
+confidence interval and the light grey area is a 95% confidence
+interval.
+</p>
+
+<p>
+This forecast is pretty much useless as it doesn't even pick up the
+obvious weekly seasonality in the data.
+</p>
+
+<p>
+To make this work better we can pick a more appropriate forecasting
+model and help it out by specifying that we are interested in weekly
+seasonality.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">visits &lt;- ts(raw$Visits, frequency=7)
+
+weekforecast &lt;- forecast(visits)
+plot(weekforecast, xlim=c(110,125), xlab="Weeks", ylab="Visits", main="")
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-09-18-weekforecast.png" alt="2013-09-18-weekforecast.png" />
+</p>
+</div>
+
+<p>
+This is slightly more useful as the forecast takes into account weekly
+trends.
+</p>
+
+<p>
+Similar methods could be used or more granular tracking; if you
+wanted to forecast for Monday morning rather than Monday as a whole
+then export the visits data by half day instead of by day and set the
+frequency to 14 (as there are 14 half days in a week).
+</p>
+
+<p>
+One thing that I'm not sure how to do yet is combine different
+frequencies. Businesses can have a weekly, monthly and a yearly cycle
+and these must be combined for improved forecasting accuracy.
+</p>
+
+<p>
+Also, as the frequency gets longer problems with limited data and
+less significant trends (who has a monthly trend as powerful as their
+weekend dip?) cause large uncertainty in the estimates.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">visits &lt;- ts(raw$Visits, frequency=30)
+
+monthforecast &lt;- forecast(visits)
+plot(monthforecast, xlim=c(25,31), ylim=c(0,600), xlab="Months", ylab="Visits", main="")
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="./files/2013-09-18-monthforecast.png" alt="2013-09-18-monthforecast.png" />
+</p>
+</div>
+
+<p>
+Again, less useful then I hoped.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Next steps</h2>
+<div class="outline-text-2" id="text-1">
+<ol class="org-ol">
+<li>Hook this model up to the Google Analytics API. Firstly to begin
+getting a better idea of its accuracy but also to see how well it
+works when the data is filtered across different dimensions.
+</li>
+<li>Figure out how to combine forecasts with different frequencies so
+that everything keeps running smoothly in the event of a bank
+holiday or Christmas.
+</li>
+</ol>
+</div>
+</div>

@@ -1,0 +1,39 @@
+---
+title: Do Not Track and Mozilla.org
+tags: analytics,privacy 
+---
+
+<p>
+There is an interesting <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=858839">bug report and associated discussion</a> over on
+the Mozilla bugzilla which reveals several points about the Do Not
+Track HTTP header, the Mozilla website and Firefox's implementation
+of this protocol.
+</p>
+
+<ul class="org-ul">
+<li>There is confusion about what "Do Not Track" actually means; some
+say it means "don't track me at all", others say the meaning is
+more "don't track me and share the data with third parties"
+</li>
+<li>There is also discussion about whether or not Google Analytics
+counts as a third party. The opinion seems to be that because
+Mozilla use GA Premium the data will not be used by Google so using
+GA does not count as giving the data to a third party.
+</li>
+<li>Finally, there are people making (the very valid imo) point that
+the Firefox interface for DNT is terrible at making these
+ambiguities obvious to the user:
+<img src="./files/firefox-dnt.png" alt="firefox-dnt.png" />
+</li>
+</ul>
+
+<p>
+I messed around with the DNT header when I first saw the setting in
+Firefox and I was amused to see that the Google Analytics tracking
+pixel was still firing. I thought this was either because they would
+filter the DNT requests when processing the data or because Google
+deliberately chose to ignore the header. I never considered that
+being tracked by Google in this way could actually be compliant with
+DNT; in some ways this is worse because it makes the protocol
+basically useless
+</p>

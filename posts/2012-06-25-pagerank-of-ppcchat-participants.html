@@ -1,0 +1,33 @@
+---
+title: PageRank of #PPCChat participants
+---
+
+<article id="content" class="zp-65">
+                <div class="padding">
+                    
+
+    
+
+    <p class="summary">
+        I've been messing around a little bit with the Twitter streaming API and the igraph python programming library. Not really very PPC related,  but it is quite interesting. I'm a long time watcher of the #PPCChat hashtag so in order to relate this post in some way to paid search I'm going to do some analysis of this community.
+    </p>
+
+    <p>
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-25-2442371176_8e449d0738_b.jpg.jpg"></img>
+			
+		</figure>	
+	
+
+I've been downloading and saving every tweet on the #PPCChat hashtag using the Twitter streaming API. If you're interested in this sort of thing then you should look at my <a title="Python Twitter Streaming API example" href="http://www.ppcanalytica.com/lib/twitterstreaming.py">twitter streaming tweet saver python script</a>. You'll need the <a href="http://pypi.python.org/pypi/tweetstream">tweetstream</a> package but otherwise it should work out of the box; just provide your username and password on the command line.</p><p>6151 tweets later I pulled the data I had and began to do some analysis.</p><p>When looking at a network or community a popular way to figure out who is influential is to use the <a href="http://searchengineland.com/what-is-google-pagerank-a-guide-for-searchers-webmasters-11068">PageRank algorithm</a> which should be familiar as the break through that made Google's organic search so much better than their competitors.</p><p>Luckily for me and my programming skills there is a handy library called <a href="http://igraph.sourceforge.net/">igraph</a> with a nice <a href="http://www.cs.rhul.ac.uk/home/tamas/development/igraph/tutorial/tutorial.html">python interface</a> which would do all the algorithmic heavy lifting for me.</p><h3>The Setup</h3><p>After processing and sanitizing the data a little I was able to create a graph where each vertex is either a participant in #PPCChat or someone mentioned by a participant in #PPCChat. I made an edge from person A to person B whenever person A mentioned person B in a tweet. This means there could be multiple edges between people.</p><p>With 745 participants/mentions and 8488 edges between then visualizing the graph is a bit of a mess:
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-25-igraph.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><h3>Calculating PageRank</h3><p>igraph has an inbuilt method for calculating PageRank which ran surprisingly fast given how long it took to generate the graph in the first place. Then it was simply a case of sorting the results.</p><h3>The Top 10</h3><p>Drumroll please...</p><ol><li><a href="http://theppcblog.com/">Matt Umbro</a> (PageRank of 0.07816)</li><li><a href="http://www.marinsoftware.com/">Marin Software</a> (0.07799)</li><li><a href="http://www.beyondthepaid.com/">Melissa Mackey</a> (0.07319)</li><li><a href="http://www.michellemsem.com/">Michelle Morgan</a> (0.03864)</li><li><a href="http://www.webranking.com/">James Svoboda</a> (0.03749)</li><li><a href="http://www.dreamsystemsmedia.com/">Luke Alley</a> (0.03148)</li><li><a href="http://community.microsoftadvertising.com/en/small-business/adcenter/b/advertiser/">AdCenter</a> (0.02782)</li><li><a href="http://about.me/aaronlevy">Aaron Levy</a> (0.02688)</li><li><a href="http://about.me/chriskos">Chris Kostecki</a> (0.02036)</li><li><a href="http://adwords.blogspot.com">AdWords</a> (0.02036)</li></ol><div><a href="http://www.ppcanalytica.com/lib/ppcchat-pagerank.tsv">Download the complete list</a>. Where do you rank?</div><p><em>NB: Floating point errors (I think) have caused the downloadable list to change since I did the top 10 list. I think this error is worth leaving as it stands to show the problems and risks of using PageRank.</em></p><h3>Analysis (or WTF Marin?)</h3><p>I think it is safe to say that the top 10 contains all the usual suspects but I am surprised to see Marin software rank so highly. They rarely appear in my stream, so what is going on here?</p><p>Marin have 22 mentions compared to Matt's 876 and only one of them (apart from themselves) has a page rank about 0.001.</p><p>Marin have only mentioned a #PPCChat user once whilst using the hashtag and in this case, the user was @marinsoftware! This means that Marin have created a loop in our graph; PageRank flows in, but none of it flows out!</p><p>After deleting all self mentions from the graph (not just Marin's) then the top 10 is as follows:</p><ol><li>Matt Umbro</li><li>Melissa Mackey</li><li>Michelle Morgan</li><li>James Svoboda</li><li>Luke Alley</li><li>Aaron Levy</li><li>AdCenter</li><li>Chris Kostecki</li><li>AdWords</li><li><a href="https://twitter.com/ineils">Neil Sorenson</a></li></ol><p>This list seems much more reasonable. Marin drop back to 47th place.</p><p>No doubt I could continue &quot;refining&quot; this until it perfectly matched what I think it should, but I think I'm done now.</p><p>Download the <a href="http://www.ppcanalytica.com/lib/tweetgraph.py">python script</a> that I used.</p>
+	
+	</article>

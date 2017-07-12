@@ -1,0 +1,82 @@
+---
+title: Sub-Communities within #PPCChat
+---
+
+<article id="content" class="zp-65">
+                <div class="padding">
+                    
+
+    
+
+    <p class="summary">
+        My last post about the PageRank of #PPCChat participants was popular and quite quick to put together. I'm not above whoring myself out for social media attention so I thought I'd see what else I could find in this data.
+
+    </p>
+
+    <p>With a social network graph like the one I'm able to generate for the #PPCChat community one of the things to look at is sub-communities and clusters within the original graph.</p><p>For a <a title="So many wiki links!" href="http://en.wikipedia.org/wiki/Directed_graph">directed graph</a> (where the edges point from one vertex to another and don't go both ways) we need to look at <a href="http://en.wikipedia.org/wiki/Connectivity_(graph_theory)">weakly connected components</a>.</p><p>The #PPCChat graph has 47 weakly connected components meaning there are 47 subgraphs that aren't connected to each other. Of these subgraphs 38 of them contain only one vertex meaning that person has never been mentioned by another in #PPCChat. Give them some love:</p><ul><li>jstatad </li><li>yettiebvxl </li><li>chiragemadv </li><li>xpctechnology </li><li>hoppervsagm </li><li>adwiserhq </li><li>marabelafjpu </li><li>amy_garden </li><li>whitestick </li><li>oskben </li><li>brennanbrooks </li><li>vir2biz </li><li>timesecrets </li><li>fisheyedave </li><li>rogersikes </li><li>teknicks </li><li>mariskanrhob </li><li>jererpr </li><li>sterlinggreen </li><li>steveoneclick </li><li>tauseefazhar </li><li>jezabelhv </li><li>samowenppc </li><li>peckgmj </li><li>rodrigotqueiroz </li><li>johnpauldesousa </li><li>septembersot </li><li>convertable </li><li>jackportersmith </li><li>wijnandvdvlies </li><li>hbekxavier </li><li>rodsblog </li><li>joshkimber </li><li>shazenkhan </li><li>tommieplg </li><li>samueldjames </li><li>websterj </li><li>reynaldaiqkh</li></ul><p>A further seven components have only two vertices. These happy couples tweet at each other but aren't mentioned by anyone else:</p><ul><li>gladue and bcharlesworth</li><li>onwardatlanta and jenniferbrabson</li><li>microsoftsmb and farhiyo_hiray</li><li>mineral_deadsea and deal_rt</li><li>jmthefourth and linda_irvine</li><li>web2updates and webmarketingjo</li><li>stebppc and vickybrowne</li></ul><p>Then there is a component with four vertices whom I have dubbed the FastWebMedia collective:</p><ul><li>brionygunson, go_viva, fastwebmedia and thinkfirstweb</li></ul><p>Everyone else (all of the 689 remaining participants) is lumped together in one massive group where everyone is joined in some way to everyone else. This is a large, tightly connected community.</p><p>The diameter of this core community is eight meaning that there are at most <a href="http://en.wikipedia.org/wiki/Six_degrees_of_separation">eight degrees of separation</a> (NB eight is the maximum, the average is only 3.05) between people in this core community.</p><p>The two participants who are furthest apart are wtongen and thesearchagency. The connection between them goes from wtongen through mnsearch, ppcmemes, attacat_colleen, michellemsem, lukealley, jbguru and semwisdom before reaching thesearchagency. Hopefully these two can get to know each other a little better in the future.</p><p>Having eight degrees of separation between two participants makes me think that perhaps there are sub-communities within the hub.</p><p>There are many algorithms for identifying communities within a graph. I will use the <a href="http://en.wikipedia.org/wiki/Girvan%E2%80%93Newman_algorithm">Girvan-Newman algorithm</a> because it is quite easy to understand and has been recommended to my by <a href="http://christopher-berry.blogspot.com">Christopher Berry</a>.</p><p>The algorithm relies on the idea of &quot;edge betweenness&quot;. The betweenness of an edge is the number of shortest paths between two vertices the edge is on. An edge that links two communites will be on many such paths so if we iterate by removing the edge with the highest betweenness we will eventually split the graph into communities.</p><p>We start out with a graph like this:<br />
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-hub.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>After 63 iterations we manage to split joesev and arpitsinghi out from the herd:
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-63iterations.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>It isn't until 229 iterations that we split out another two person community (although lots of single vertices have split in the meantime):
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-229iterations.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>259 iterations:
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-259iterations.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>434 iterations (each snapshot is taken whenever a community of size &gt; 1 spilts from the hub):
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-434iterations.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>813 iterations:
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-813iterations.png.jpg"></img>
+			
+		</figure>	
+	
+
+I got bored looking for large sub-communities after 878 iterations:
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-878iterations.png.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>It looks like my plan to steal Matt Umbro's crown using a divide and conquer strategy is doomed to failure :-(</p><p>Running the algorithm until it finishes produces a <a href="http://en.wikipedia.org/wiki/Dendrogram">tree diagram</a>, of which a massive version is linked to below:<a href="http://www.ppcanalytica.com/lib/images/dendrogram.png">
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2012-6-28-dendrogram.png.jpg"></img>
+			
+		</figure>	
+	
+
+</a>This chart allows you to see how close people are together. For example, mel66's closest #PPCChat friend is michellemsem. Going up a level they are joined by the pair of matt_umbro and realicity then by chriskos, lukealley and bigalittlea (in that order).</p><p>Actionable social media data or just #PPCChat navel gazing?</p><p>Doing this kind of analysis for a brand can reveal sub-communities (this didn't really happen for #PPCChat) who can then form the basis for some data driven personas. It can also reveal the highly connected individuals who it is worth engaging with directly.</p><p>The tree diagram is another way to spot communities and also a way to see how close users are together.</p><p>What are your thoughts? Could these techniques make social marketing better? </p>
+	
+	</article>

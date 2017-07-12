@@ -1,0 +1,115 @@
+---
+title: Tag Management for Google Analytics using the E-Analytica Tag Manager
+tags: analytics,google analytics,tagging examples
+---
+
+<p>
+Here is a quick walk through on how to get up and running with the
+<a href="http://www.eanalytica.com/tag-management/">E-Analytica tag manager</a> and Google Analytics. Hopefully it is simpler
+than you think!
+</p>
+
+<ol class="org-ol">
+<li>Click the "Add Tag" button to add a new tag
+
+
+<div class="figure">
+<p><img src="./files/2012-09-26-add-tags-button.png" alt="2012-09-26-add-tags-button.png" />
+</p>
+</div>
+</li>
+
+<li>Name the tag. "Google Analytics" is a good name for this
+
+
+<div class="figure">
+<p><img src="./files/2012-09-26-name-the-tag.png" alt="2012-09-26-name-the-tag.png" />
+</p>
+</div>
+</li>
+
+<li>Click the "Add Variant" button and give the variant a name
+
+
+<div class="figure">
+<p><img src="./files/2012-09-26-add-and-name-variant.png" alt="2012-09-26-add-and-name-variant.png" />
+</p>
+</div>
+</li>
+
+<li>Give the variant a priority number. The rule is that when two
+variants are both eligible to show on the same page, the variant
+with the highest priority will be shown.
+
+<p>
+In this example I use a priority of 0 because this is the default
+tag. I want any custom tags to be able to overwrite it.
+</p>
+
+<p>
+The priority must be a whole number.
+</p>
+</li>
+
+<li>Select which pages the variant will show on. You have four options:
+<ul class="org-ul">
+<li>All pages
+</li>
+<li>URIs that start with a particular string
+</li>
+<li>URIs that contain a particular string
+</li>
+<li>A URI that exactly matches the string
+</li>
+</ul>
+<p>
+Here I choose all pages because I want the tag to show on every
+page.
+</p>
+
+
+<div class="figure">
+<p><img src="./files/2012-09-26-priority-and-condition.png" alt="2012-09-26-priority-and-condition.png" />
+</p>
+</div>
+</li>
+
+<li>Add the Google Analytics javascript code. This code is hosted on
+the Google Analytics website at
+<a href="http://www.google-analytics.com/ga.js">http://www.google-analytics.com/ga.js</a>. 
+
+
+<div class="figure">
+<p><img src="./files/2012-09-26-external-script.png" alt="2012-09-26-external-script.png" />
+</p>
+</div>
+</li>
+
+<li>Add the inline javascript. Inline javascript is what would go
+directly on the page. It is not stored in an external file. The
+Google Analytics inline script looks something like what is in the
+picture below (you will have to change the UA code):
+
+
+<div class="figure">
+<p><img src="./files/2012-09-26-scripts.png" alt="2012-09-26-scripts.png" />
+</p>
+</div>
+</li>
+
+<li>Finished! Click "Save Tags" and you're done
+</li>
+</ol>
+
+<p>
+The cool thing is that you can update the tags in real time without
+having to make changes to the website.
+</p>
+
+<p>
+Impressed? Enter your email address to get started:
+</p>
+<form method="POST" action="http://apps.eanalytica.com/auth/page/email/register">
+ <input type="email" name="email" placeholder="Enter your email address...">
+ <button type="submit" class="btn btn-primary btn-large">Get Started Now</button>
+</form>

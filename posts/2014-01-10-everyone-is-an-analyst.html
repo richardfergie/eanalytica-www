@@ -1,0 +1,169 @@
+---
+title: Everyone is an Analyst
+tags: charity,data science,process,analytics,web analytics
+---
+
+<p>
+TL;DR; use your web analytics expertise to unlock the domain
+expertise of the client
+</p>
+
+<p>
+As I'm sure anyone with a LinkedIn profile and web analytics as a
+skill knows there is a bit of a skills gap in organisations when it
+comes to analysing their data.
+</p>
+
+<p>
+So businesses hire analysts and, depending on how well they can hire,
+reports or actionable insights (or possibly both) are produced. The
+assumption here is that it is only the analyst who has the skills and
+ability to use the data to produce these reports or insights; they
+have been hired because these skills are lacking in the organisation.
+</p>
+
+<p>
+A few projects I've had recently and the strategy I'm developing for
+another client make me question the usefulness of this assumption.
+</p>
+
+<p>
+I don't think that most people are idiots when it comes to web
+analytics. Most idiotic behaviour arises from a complete lack of web
+analytics domain knowledge combined with an attempt to guess the
+solution whilst stating the problem.
+</p>
+
+<p>
+On the flip side, new analysts completely lack of domain knowledge
+for the organisation they are working with. This leads to reporting
+on metrics that don't matter and impractical solution suggestions to
+unimportant problems. I know this is true; I've done it myself.
+</p>
+
+<p>
+As I mentioned earlier, the traditional solution to this is for the
+analyst to learn the problem domain and then to provide insight. The
+alternative, which I think is the way things are going, is for the
+web analytics expert to build tools so that the client's lack of web
+analytics knowledge doesn't block them from using their organisation
+domain knowledge to perform their own analysis.
+</p>
+
+<p>
+Google Analytics custom reports are an example of this trend; the
+analyst uses their domain expertise enable to client to use their
+domain expertise without the client having to learn lots about Google
+Analytics.
+</p>
+
+<p>
+An interesting corollary to this idea is that unless your client is
+interested only in what can be reported in Google Analytics you will
+have to learn how to integrate with other systems. This is part of
+the trend where I think web analytics will be absorbed by business
+intelligence within the next 10 years.
+</p>
+
+<p>
+This is a big step up in complexity from making Custom Reports. The
+introduction of Universal Analytics might help plug the gap here, but
+all it really does is shift the work away from creating the report
+and onto getting the collectors implemented correctly.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Bonus: Creating simple analysis tools</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+It should maybe be a different blog post to talk about ways to enable
+analysis for a non-domain expert outside of custom reports but I blog
+so infrequently that I'm going to stick it in here whilst I'm in flow.
+</p>
+
+<p>
+What is the difference between an analysis tool and a report? There
+isn't a clear dividing line but I'd say the main differences are that
+a report is less flexible and less subtle. A report presents and
+justifies a conclusion that is already decided; a tool enables the
+user to find their own conclusion (although the sort of conclusion
+they might want to find can be built in).
+</p>
+
+<p>
+Where to start with building tools? The first question is to figure
+out what analysis you want to enable. Then select the tools necessary
+to do this.
+</p>
+
+<ul class="org-ul">
+<li>Excel. Whatever tool you make, the data is probably going to end up
+in Excel anyway so why not skip the middleman and put it directly
+in this format? A good Excel workbook for analysis is not the same
+as a good Excel report; for example, things like whether a field is
+in a row or a column suddenly become much more important when the
+end user is going to be trying to mung it about
+themselves. Probably the only option in many cases.
+</li>
+<li>Third party tools. If you have the budget there are many, many
+awesome tools designed for exactly this sort of thing. I've only
+briefly used <a href="http://www.qlikview.com">Qlikview</a> but I was very impressed. A good place to get
+an idea of what kind of tools are out there and how they might be
+integrated is the <a href="http://www.snowplowanalytics.com/blog.html">Snowplow blog</a> which frequently has posts on
+integrating new frontends and visualisations with their data
+backend.
+</li>
+<li>Web Applications. For my client <a href="http://www.keyfund.org.uk">Keyfund</a> I've increased the number
+of analysts by a factor of 10 (potentially a factor of 100 if we
+roll the tool out further) by presenting a small amount of data
+on top of Google Maps. This is a big deal because the two main
+bottlenecks with Keyfund are my lack of time and my lack of domain
+knowledge. I'm also finding that <a href="http://filter.eanalytica.com">http://filter.eanalytica.com</a> is
+saving me enough time that I'm ROI positive from making it with me
+as the only user.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> End bonus</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+When you think about it this way there is actually a hierarchy of
+enablers:
+</p>
+
+<ol class="org-ol">
+<li>I create a custom report which enables the client
+</li>
+<li>In doing so I'm enabled by the Google Analytics web interface
+</li>
+<li>I'm also enabled by <a href="https://twitter.com/fastbloke">Doug Hall</a> who has written some javascript that
+helps me track something I wouldn't otherwise be able to
+</li>
+<li>Doug's javascript uses jquery
+</li>
+<li>&#x2026;
+</li>
+<li>Turing came up with the idea for a universal computer
+</li>
+</ol>
+
+<p>
+At level X something is created using domain specific knowledge of
+level X which can then empower those on the level X-1 to use their
+domain specific knowledge.
+</p>
+
+<p>
+I am slightly reminded of <a href="http://worrydream.com/LadderOfAbstraction/">Up and Down the Ladder of Abstraction</a> which
+you should definitely have a look at if you haven't seen it already.
+</p>
+
+<p>
+So in conclusion, you are at your most powerful when you enable
+others to use your domain knowledge to better use their domain knowledge.
+</p>
+</div>
+</div>

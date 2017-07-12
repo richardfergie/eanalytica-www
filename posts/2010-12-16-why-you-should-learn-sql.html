@@ -1,0 +1,41 @@
+---
+title: Why You Should Learn SQL
+---
+
+<article id="content" class="zp-65">
+                <div class="padding">
+                    
+
+    
+
+    <p class="summary">
+        Most people I know use Excel or the Adwords web interface when analysing data from their PPC accounts. I think that these tools are not the best that is available and that using an SQL database and query language is a better solution.
+    </p>
+
+    <h3>What is SQL?</h3><p>SQL stands for &quot;structured query language&quot;. It is a programing language designed for dealing with databases. Relational database theory is not something I want (or am able) to explain so this article won't focus on how to design a database for an AdWords campaign. Instead I will try to persuade you that it is worth giving SQL a try for your data analysis/retrieval needs.
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2010-12-16-518053737_8a9794389e.jpeg.jpg"></img>
+			
+		</figure>	
+	
+
+</p><h3>Why should I bother with it?</h3><p>SQL is *specifically designed* for getting a subset of data from a database. Filters, sorts and lookup and pivot tables in Excel can do some of what SQL can do but they are neither as powerful nor as simple to use. Similarly, the filters in the AdWords interface and the search functions in AdWords Editor all perform a small subset of the tasks that SQL is capable of.</p><p>For a PPC manager I rate myself as about average at using Excel, I am pretty confident at using pivot tables and I know the ins and outs of the VLOOKUP function. To get the average quality score for an account (using Excel) I would do something like the following:</p><ol><li> Get a keyword report into Excel</li><li>In a new column, write the result of quality score * impressions</li><li>Sum this new column</li><li>Divide the total by the total number of impressions</li></ol><p>
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2010-12-16-2102898220_1b14d39fb6.jpeg.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>By saving the spreadsheet I can save a bit of time the next time I have to do this, but there is still a bit of overhead if I have to change the number of rows or something. The SQL version only has two steps:</p><ol><li>Get a keyword report into an SQL database (this bit can be pretty hard the first time)</li><li>Run the following query &quot;SELECT sum(impressions*quality_score)/sum(impressions) FROM keyword_report&quot;</li></ol><p>The SQL method has even more advantages when you see how easy it is to segment the results. If I want to see the average quality score for Campaign 1 the query only changes slightly &quot;SELECT sum(impressions*quality_score)/sum(impressions) FROM keyword_report WHERE campaign=$$Campaign 1$$&quot;. In Excel I would either have to filter or sort the columns to do this.</p><p>Another advantage of SQL is that it is much easier to automate things. I have no idea how I could get Excel to run some analysis every day and then email me if the result was outside a particular range but I think I could accomplish this using SQL and the tools that go with it.</p><h3>Forces you to think rather than do</h3><p>Excel and the AdWords interface are both very pretty tools compared to SQL. Here is a photo of an SQL prompt:
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2010-12-16-253669480_e45f978958.jpeg.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>This forces you to think more about what you are doing and what you want to know. Then you do it, find out and action. Staring at a blank screen is intimidating in comparison to other interfaces that present options right in front of you but because you are starting from scratch you focus on what matters rather than what is easy to do.</p><h3>Disadvantages</h3><p>There are three main disadvantages:</p><ol><li>It is harder to get the data you need into an SQL database then it is to export in a format Excel can read</li><li>You don't know SQL but you are already pretty good at Excel</li><li>SQL is only good at one thing</li></ol><p>I'm going to ignore point 1 for now. Point 2 is good, but I hope my preceeding paragraphs have persuaded you that it might be worth giving it a try. Point 3 is a consequence of a fact that I have mentioned before; SQL is designed to get data out of databases. It is not designed to manipulate the data or to draw graphs or output reports. Some of these things can be done purely in SQL (but it is probably not recommended) and all of them can be accomplished using one of the many other programming languages that interface with SQL databases. However, it is easier to whip something together in Excel although for frequently performed tasks it is worth coming up with a more automateable solution.</p><p>I think there is a lot more to come from me on this topic. I'll post a bit more in the future</p>
+	
+	</article>

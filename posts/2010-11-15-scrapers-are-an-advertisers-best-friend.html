@@ -1,0 +1,34 @@
+---
+title: Scrapers are an Advertiser's Best Friend?
+---
+
+<article id="content" class="zp-65">
+                <div class="padding">
+                    
+
+    
+
+    <p class="summary">
+        I'm going to file this one under &quot;stuff you shouldn't have to know but which is pretty useful in this imperfect world in which we live&quot;. The truth of the matter is that sometimes the quickest way to get the information you need is to scrape a client's site. In this post I will give a quick overview of how to do this.
+    </p>
+
+    <p>I recently bought a sleeping bag from <a href="http://www.outdoorkit.co.uk/" target="_blank">www.outdoorkit.co.uk</a>. I found their site through a PPC advert but they were not advertising on the product I bought (even though they had it in stock and everything). I spy a missed opportunity in the long tail for whoever is managing their PPC spend.
+	
+		<figure class="image-wrapper block-level-image">
+			<img src="./files/2010-11-15-123645424_f127be7a1e_d.jpeg.jpg"></img>
+			
+		</figure>	
+	
+
+</p><p>I think that when adding a long list of product specific keywords and ad groups to an account spreadsheet munging is a perfectly acceptable practice. I know that in an ideal world every product would have a carefully customized and handcrafted ad group with bespoke ad texts but this is rarely worth the effort for a keyword that will get &lt;20 searches a month. Creating keyword combinations and ad texts in a spreadsheet is fairly simple as long as you have access to all the data you need. This is not normally very easy. The following conversation is typical:</p><blockquote><p><strong>Me:</strong><em>Hi, can you get me a list of all your products with prices and a brief description of the product category please?</em></p><p><strong>Marketing Manager: </strong><em>Sure, no problem. I'll get onto the IT team for you. They will be able to make you a spreadsheet</em></p></blockquote><p>As soon as I hear that my question is going to go to the IT department I know that it will almost certainly be quicker for me to get the information I need by scraping.</p><p>Let's think what information I want in order to include all products in their paid search account:</p><ol><li>Landing page URL</li><li>Product name</li><li>The type of product (sleeping bag, stove, hiking boot etc.)</li><li>Maybe the price</li></ol><p>The first thing I want is a list of landing page URLs. It would be possible to collect these by writing a program to spider the site or using something like <a href="http://home.snafu.de/tilman/xenulink.html" target="_blank">Xenu Link Sleuth</a> but in this case there is an easier way: Outdoor Kit have a sitemap.</p><p>Google Spreadsheet has a pretty cool function called &quot;importXML&quot; that we can use to retrieve the sitemap and extract the information we want. You can see my spreadsheet for the Outdoor Kit sitemap <a href="https://spreadsheets.google.com/ccc?key=0AhUsdRLRiotIdFpOQzZMbWtLU09VTmswVmhtc3ltNEE&amp;hl=en&amp;authkey=CKn5j5QL" target="_blank">here</a>. Excel also has the ability to import XML from the web, but I prefer Google Spreadsheet for this.</p><p>The importXML function takes two arguments; the first is the URL of the XML file (in this case &quot;http://www.outdoorkit.co.uk/sitemap.xml&quot;), and the second is an Xpath function to extract the important data. You don't need to learn much Xpath for this; all you need to remember is that &quot;//loc&quot; will extract all the URLs from the sitemap.</p><p>The next two columns in the spreadsheet are filters on the list of URLs. I have one column that contains all the product pages, and one that contains all the category pages.</p><p>The next thing is to write a program that will take our list of webpages and extract the information we want from each one. I recommend using Python's <a href="http://www.crummy.com/software/BeautifulSoup/" target="_blank">Beautiful Soup</a> library for this but there are many other options. Unless all your client's use the same template you will have to rewrite the parsing bit of your program for each client.</p><p>Parsing using Beautiful Soup is quite easy. Here is code that can be used to extract product landing pages, product name and product prices from a category page of Outdoor Kit:</p><pre>import urllib2
+from BeautifulSoup import BeautifulSoup
+
+page = urllib2.urlopen('INSERT PAGE URL HERE;)
+soup = BeautifulSoup(page)
+
+products = soup.findAll(&quot;div&quot;, &quot;txt&quot;)
+
+for product in products:
+  print str(product.h2.a.get('href'))+&quot;, &quot;+str(product.h2.a.contents[0])+&quot;, &quot;+str(product.find('div', 'price').contents[0]</pre><p>This will print out the required information in CSV format. Of course, this output should be written to a file rather than sdout if you actually wanted to use the data.</p><p>Information about the product category is also available. Working this information into the program is left as an exercise for the reader.</p><p>So there you have it; this is why I think a little bit of knowledge about scraping and parsing can be useful for a Search Engine Marketer.</p>
+	
+	</article>

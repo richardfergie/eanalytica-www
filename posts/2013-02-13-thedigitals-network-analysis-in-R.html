@@ -1,0 +1,209 @@
+---
+title: '#TheDigitals Network Analysis in R'
+tags: twitter, R
+---
+
+<p>
+<a href="http://www.eanalytica.com/blog/twitter-network-analysis-in-R/">My
+last post</a> was about some simple techniques to analyse a twitter
+network in R. I've been doing some more work on this with tweets
+from #theDigitals hashtag. This hashtag is used by competitors in a
+competition be an assistant judge at an award
+show. <a href="http://www.leaderboarded.com/thedigitals">You can see the
+current leaderboard here</a>.
+</p>
+
+<p>
+Two people <a href="http://twitter.com/barryadams">Barry Adams</a> and <a href="http://twitter.com/edwinbongo">EdwinBongo</a> have been removed from the
+leaderboard for having too many mentions from low value accounts. The
+way both accounts no longer feature at all makes me think that this is
+manual action rather than an automated filtering of what is/isn't
+important.
+</p>
+
+<p>
+Let's see what we can discover:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">library(stringr)
+library(igraph)
+
+location = "/tmp/data/thedigitals.tsv"
+
+tweets &lt;- read.csv(location, header=FALSE, sep='\t',stringsAsFactors=FALSE)
+
+#key columns in the tweets table are:
+# tweets$V3 - contains the tweet text
+# tweets$V10 - contains the username of the tweeter
+
+#edges is an accumulator for all the edges in the graph
+edges = c()
+
+for (i in 1:length(tweets$V3)) {
+  #for each tweet get a list of accounts mentioned
+  #just extract any string that matches a username regex
+  mentions = unlist(str_extract_all(tolower(tweets$V3[i]),"@[a-z0-9_]{2,15}"))
+  if (length(mentions)!=0) {
+    for (j in 1:length(mentions)) {
+      if(tweets$V10[i]!="" &amp;&amp; substring(mentions[j],2)!="") { #needed for when parser borks
+        #add the tweeter and the mentionee to the edge list
+        edges=c(edges,c(tolower(tweets$V10[i]),substring(mentions[j],2)))
+      }
+    }
+  }
+}
+
+#turn the edgelist into a matrix
+edgematrix &lt;- t(matrix(edges,nrow=2))
+#turn the matrix into a graph
+g &lt;- graph.edgelist(edgematrix)
+
+#remove self links
+for (i in 1:length(g[,1])){
+  g[i,i] = 0
+}
+
+#calculate the page rank
+pr&lt;-page.rank(g,directed=TRUE)
+
+#to run the community detection we need a simple, undirected graph
+g.simple = simplify(as.undirected(g))
+
+#community detection
+fg &lt;- fastgreedy.community(g.simple)
+
+#graph layout: can take a while
+l &lt;- layout.fruchterman.reingold(g.simple)
+
+#remove labels
+#without this all you see on the plot are labels
+V(g.simple)$label &lt;- NA
+
+#plot the graph
+plot(g.simple, vertex.color=fg$membership+1,vertex.frame.color=fg$membership+1,
+     vertex.size=100*pr$vector, vertex.label.dist=0.1, layout=l)
+</pre>
+</div>
+
+<p>
+This code is pretty much identical to the code in my last post except
+that it runs a community detection algorithm called "fastgreedy". The
+first answer to
+<a href="http://stackoverflow.com/questions/9471906/what-are-the-differences-between-community-detection-algorithms-in-igraph">this
+stackoverflow question</a> has a good explanation of how the algorithm
+works and what other options are available. I picked it because it is
+relatively quick and the results are good enough for what I am trying
+to show here.
+</p>
+
+<p>
+When the graph is plotted, it looks something like this:
+</p>
+
+
+<div class="figure">
+<p><img src="./files/thedigitalsnetwork.png" alt="thedigitalsnetwork.png" />
+</p>
+</div>
+
+<p>
+I have manually labelled some of the nodes.
+</p>
+
+<p>
+Some quick notes on the plot:
+</p>
+
+<ol class="org-ol">
+<li>The nodes are sized proportional to their pagerank
+</li>
+<li>The bot networks used by BarryAdams and EdwinBongo are easy to pick
+out because they form distinct communities
+</li>
+<li>But this isn't quite perfect; unless some of the bots have also
+been tweeting other competitors
+</li>
+<li>BarryAdams and EdwinBongo have a bit of overlap in their respective
+bot armies.
+</li>
+</ol>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> How can we come up with a better way of ranking this network?</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Pagerank obviously doesn't work here. Closed off communities like that
+containing agencyquotes operate as linkwheels and a large number of
+spam bots inflate the pagerank of some accounts.
+</p>
+
+<p>
+The main problem with using pagerank is that it gives the bots too
+much power. My first idea for fixing this was to only give a whitelist
+of accounts an initial pagerank value. Then the algorithm could be
+applied to see how this spreads through the network (this is basically
+how Google trustrank works). The problem with this approach is that is
+the whitelist is a source of bias - whoever is on the whitelist has a
+big advantage over everyone who isn't.
+</p>
+
+<p>
+My next idea is to only allow nodes who have been mentioned by someone
+else to be part of the graph. In the data, spam bots don't mention
+each other so by filtering this way we remove their power whilst not
+raising the bar too high for legitimate users who want to win the
+competition; anyone who is going to win needs to get mentioned by
+someone else anyway.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">V(g)$indegree &lt;- degree(g, v=V(g), mode="in")
+g.nobots &lt;- delete.vertices(g,V(g)[ indegree == 0 ])
+g.nobots$label &lt;- NA
+pr.nobots &lt;- page.rank(g.nobots,directed=TRUE)
+plot(g.nobots, layout=layout.fruchterman.reingold, vertex.size=100*pr.nobots$vector)
+</pre>
+</div>
+
+<p>
+This give something like this:
+</p>
+
+
+<div class="figure">
+<p><img src="./files/thedigitalsnobots.png" alt="thedigitalsnobots.png" />
+</p>
+</div>
+
+<p>
+Which I think is much more reasonable. And who are the top ten? Here
+goes (current leaderboarded ranking in parentheses):
+</p>
+
+<ol class="org-ol">
+<li>Econsultancy (not in top 100)
+</li>
+<li>Dan Barker (1)
+</li>
+<li>Debs Jowett (27)
+</li>
+<li>Gareth Westhead (not in top 100)
+</li>
+<li>Rene Power (52)
+</li>
+<li>Pete Handley (13)
+</li>
+<li>EdwinBongo (he does deserve to be here!)
+</li>
+<li>Graham Charlton (8)
+</li>
+<li>Craig Sullivan (21)
+</li>
+<li>Will Scott (2)
+</li>
+</ol>
+</div>
+</div>

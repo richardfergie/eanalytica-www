@@ -1,0 +1,90 @@
+---
+title: Using HTML5 and pushState to track "dark social"
+tags: analytics
+---
+
+<p>
+I first read the phrase "dark social" in <a href="http://www.theatlantic.com/technology/archive/2012/10/dark-social-we-have-the-whole-history-of-the-web-wrong/263523/">an article in the
+Atlantic</a>. The author (Alexis Madrigal) correctly points out that a lot
+of social content sharing is not tracked by web analytics because it
+shows up as direct traffic. I don't think this means "we have the
+whole history of the web wrong" but it is something to ponder.
+</p>
+
+<p>
+For other channels where there is a high chance of a visitor arriving
+without a referrer string web analysts use URL tagging to decide where
+they have come from. This required tagging the URLs in advance so it
+works very well for things like email where everything is under
+control. It doesn't work so well for social media where you can't rely
+on people tagging your URLs for you (and you certainly can't rely on
+them not to do it in a malicious way).
+</p>
+
+<p>
+The social share buttons on the blog use URL tagging so that when
+someone uses them to share a post I can tell that everyone who clicks
+the link clicked a link that was originally shared that way. My next
+thought was to customise the share URL for each user with a unique
+identifier so that I could tell who shared content most
+successfully. Linking up a person with the unique identifier could be
+tricky but it wouldn't be impossible.
+</p>
+
+<p>
+But the most common method of sharing is to copy and paste from the
+address bar; it is impossible to tag these URLs 
+without some kind of crazy server side wizardry. Right?
+</p>
+
+<p>
+The pushState API is part of HTML5 designed to enable faster,
+interactive websites. It allows manipulation of the URL in the URL bar
+without reloading anything from the server. Rob Ousbey did a good
+introduction over on <a href="http://www.seomoz.org/blog/create-crawlable-link-friendly-ajax-websites-using-pushstate">SEOMoz</a>. We can use this to append tracking
+parameters to a URL. Press the green button to see it in action:
+</p>
+
+<script>
+function addTrackingParameters() {
+    if (history.pushState) { //feature detection
+        var currentURL = window.location.href;
+        var trackingParams = '?utm_src=UNIQUE_USER_ID&utm_medium=browserbar';
+        var newURL = currentURL + trackingParams;
+        window.history.pushState(null, document.title, newURL);
+    }
+    else {
+        alert("Your browser does not support the pushState API");
+    }
+}
+</script>
+<button class="btn-large btn-success" onclick="addTrackingParameters();">Add tracking parameters</button>
+
+<p>
+So now, when you copy and paste this URL to share my awesome post with
+your friends I will be (or would be if I had bothered to configure a
+unique ID for you) able to see what influence this has.
+</p>
+
+<p>
+The code used here is simple and has obvious bugs that mean it won't
+work in several real work situations.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-:exports">&lt;script&gt;
+function addTrackingParameters() {
+    if (history.pushState) { //feature detection
+        var currentURL = window.location.href;
+        var trackingParams = '?utm_src=UNIQUE_USER_ID&amp;utm_medium=browserbar';
+        var newURL = currentURL + trackingParams;
+        window.history.pushState(null, document.title, newURL);
+    }
+    else {
+        alert("Your browser does not support the pushState API");
+    }
+}
+&lt;/script&gt;
+</pre>
+</div>

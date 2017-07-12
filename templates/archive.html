@@ -1,0 +1,17 @@
+$if(previousPageNum)$
+<a href="$previousPageUrl$">◀ Newer Entries</a>
+$endif$&nbsp;
+$if(nextPageNum)$
+<a href="$nextPageUrl$">Older Entries ▶</a>
+$endif$&nbsp;
+
+$for(posts)$
+<div class="post">
+    <div class="title"><a href="$url$" rel="bookmark" title="Permanent Link to $title$">$title$</a></div>
+    <div style="opacity:0.8;"><small>
+            <i>$date$</i>
+    </small></div>
+    <br>
+    <p>$intro$ <span class="read-on"><a href="$url$">&hellip;</a></span></p>
+</div>
+$endfor$
