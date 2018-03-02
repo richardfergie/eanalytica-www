@@ -1,10 +1,17 @@
+<div class="container narrow">
+<h1>$title$</h1>
+<div class="row">
 $if(previousPageNum)$
-<a href="$previousPageUrl$">◀ Newer Entries</a>
-$endif$&nbsp;
+  <div class="prev">
+      <a href="$previousPageUrl$" class="pagination">◀ Newer Entries</a>
+  </div>
+$endif$
 $if(nextPageNum)$
-<a href="$nextPageUrl$">Older Entries ▶</a>
-$endif$&nbsp;
-
+  <div class="next">
+      <a href="$nextPageUrl$" class="pagination next">Older Entries ▶</a>
+  </div>
+$endif$
+</div>
 $for(posts)$
 <div class="post">
     <div class="title"><a href="$url$" rel="bookmark" title="Permanent Link to $title$">$title$</a></div>
@@ -15,3 +22,4 @@ $for(posts)$
     <p>$intro$ <span class="read-on"><a href="$url$">&hellip;</a></span></p>
 </div>
 $endfor$
+</div>

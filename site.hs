@@ -5,6 +5,7 @@ import Control.Monad
 import Hakyll
 import System.FilePath
 import Data.List
+import Text.Pandoc
 
 --------------------------------------------------------------------------------
 cleanDate :: Routes
@@ -80,6 +81,11 @@ introField = field "intro" $ \item -> do
         (replaceAll "</a>" (const "")) .
         (replaceAll "<hr>" (const ""))
 
+rawRoute :: Routes
+rawRoute = gsubRoute "raw/" (const "")
+                `composeRoutes` gsubRoute ".html" (const "/index.html")
+                `composeRoutes` gsubRoute ".markdown" (const "/index.html")
+                `composeRoutes` gsubRoute ".lhs" (const "/index.html")
 
 main :: IO ()
 main = hakyll $ do
@@ -87,11 +93,19 @@ main = hakyll $ do
         route   idRoute
         compile copyFileCompiler
 
+    match "files/*" $ do
+      route idRoute
+      compile copyFileCompiler
+
     match "css/*" $ do
         route   idRoute
         compile compressCssCompiler
 
-    match (fromList ["about.rst", "contact.markdown"]) $ do
+    match "raw/*" $ do
+      route rawRoute
+      compile copyFileCompiler
+
+    match (fromList ["about.rst"]) $ do
         route   $ setExtension "html"
         compile $ pandocCompiler
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
@@ -118,6 +132,7 @@ main = hakyll $ do
                   x -> "Archive - Page "++(show x)
                 ctx = constField "title" title <>
                       listField "posts" (postCtx <> introField) (return posts) <>
+                      field "blog" (const $ return "blog") <>
                       paginateCtx <>
                       defaultContext
             makeItem ""
@@ -126,10 +141,13 @@ main = hakyll $ do
                 >>= relativizeUrls
                 >>= slashUrlsCompiler
 
-    match "site.lhs" $ do
+    match "site.lhs" $ do --won't match unless this file is .lhs
        route (constRoute "site/index.html")
        compile $ do
          let ctx = field "title" (\_ -> return "Hakyll code for this site") <> defaultContext
+             pandocWriteOptions = defaultHakyllWriterOptions
+               { writerReferenceLinks = True
+               }
          pandocCompilerWith defaultHakyllReaderOptions pandocWriteOptions
            >>= loadAndApplyTemplate "templates/page.html" ctx
            >>= loadAndApplyTemplate "templates/default.html" ctx
@@ -137,17 +155,36 @@ main = hakyll $ do
 
     match "index.html" $ do
         route idRoute
+        let ctx = field "home" (const $ return "home") <> defaultContext
         compile $ do
-            posts <- recentFirst =<< loadAll "posts/*"
-            let indexCtx =
-                    listField "posts" postCtx (return posts) `mappend`
-                    constField "title" "Home"                `mappend`
-                    defaultContext
-
             getResourceBody
-                >>= applyAsTemplate indexCtx
-                >>= loadAndApplyTemplate "templates/default.html" indexCtx
-                >>= relativizeUrls
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= slashUrlsCompiler
+
+    match "contact.html" $ do
+      route $ constRoute "contact/index.html"
+      let ctx = field "contact" (const $ return "contact") <> defaultContext
+      compile $ do
+            getResourceBody
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= slashUrlsCompiler
+
+    match "services.html" $ do
+      route $ constRoute "services/index.html"
+      let ctx = field "services" (const $ return "services") <> defaultContext
+      compile $ do
+            getResourceBody
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= slashUrlsCompiler
+
+    match "about.html" $ do
+      route $ constRoute "about/index.html"
+      let ctx = field "about" (const $ return "about") <>
+                defaultContext
+      compile $ do
+            getResourceBody
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= slashUrlsCompiler
 
     match "templates/*" $ compile templateCompiler
 
@@ -155,5 +192,6 @@ main = hakyll $ do
 --------------------------------------------------------------------------------
 postCtx :: Context String
 postCtx =
-    dateField "date" "%B %e, %Y" `mappend`
+    dateField "date" "%B %e, %Y" <>
+    field "blog" (const $ return "blog") <>
     defaultContext

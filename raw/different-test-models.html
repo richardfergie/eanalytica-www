@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style type="text/css">
+.knitr .inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage .left {
+  text-align: left;
+}
+.rimage .right {
+  text-align: right;
+}
+.rimage .center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+
+  <meta charset="utf-8">
+  <title>Different Split Testing Models</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link rel="stylesheet" href="/css/skeleton.css">
+  <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  <script src="/js/r-tutorial.js"></script>
+  <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
+
+</head>
+<body>
+
+  <div class="container">
+  <h2>It started with a tweet...</h2>
+  <blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">fwiw, that&#39;s the wrong thing to measure there. If they get one big donator falling into either side of the test it badly skews the numbers.</p>&mdash; dan barker (@danbarker) <a href="https://twitter.com/danbarker/status/834012788397842437">February 21, 2017</a></blockquote>
+  <p>Dan points out that because some donations are a lot bigger than others the results of an A/B test can be skewed if one very big donation coincidentally falls into one test variation.</p>
+  <p>This is a very fair point, but surely there should be a way to statistically check whether the difference is due to random chance or better performance of a page.</p>
+  <p>There are many ways this could be modelled; here is my quick attempt to show how it could work on real data.</p>
+  <h2>First attempt</h2>
+  <p>To start with I'm going to try to demonstrate what Dan is talking about. I'll make some donation data for two identical pages (i.e. an A/A test) and show what kind of result this gives.</p>
+  <p>Then I'll add a single large donation to one page; you will see how suddenly a naive approach then concludes that this page is better.</p>
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl kwd">set.seed</span><span class="hl std">(</span><span class="hl num">2413</span><span class="hl std">)</span>
+    <span class="hl std">conversion_rate</span> <span class="hl kwb">&lt;-</span> <span class="hl num">0.05</span>
+    <span class="hl std">page1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">rbinom</span><span class="hl std">(</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,conversion_rate)</span><span class="hl opt">*</span><span class="hl kwd">rnorm</span><span class="hl std">(</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl kwc">mean</span><span class="hl std">=</span><span class="hl num">10</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">=</span><span class="hl num">3</span><span class="hl std">)</span>
+    <span class="hl std">page2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">rbinom</span><span class="hl std">(</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,conversion_rate)</span><span class="hl opt">*</span><span class="hl kwd">rnorm</span><span class="hl std">(</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl kwc">mean</span><span class="hl std">=</span><span class="hl num">10</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">=</span><span class="hl num">3</span><span class="hl std">)</span>
+    <span class="hl std">df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Page1</span><span class="hl std">=</span><span class="hl kwd">mean</span><span class="hl std">(page1),</span><span class="hl kwc">Page2</span><span class="hl std">=</span><span class="hl kwd">mean</span><span class="hl std">(page2))</span>
+    <span class="hl kwd">kable</span><span class="hl std">(df)</span>
+</pre></div>
+<table>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> Page1 </th>
+   <th style="text-align:right;"> Page2 </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 0.4861572 </td>
+   <td style="text-align:right;"> 0.4927313 </td>
+  </tr>
+</tbody>
+</table>
+
+</div></div>
+  <p>By random chance, the donations per visit for page 2 is slightly higher than for page 1</p>
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Page1</span><span class="hl std">=</span><span class="hl kwd">max</span><span class="hl std">(page1),</span><span class="hl kwc">Page2</span><span class="hl std">=</span><span class="hl kwd">max</span><span class="hl std">(page2))</span>
+  <span class="hl kwd">kable</span><span class="hl std">(df)</span>
+</pre></div>
+<table>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> Page1 </th>
+   <th style="text-align:right;"> Page2 </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 17.90275 </td>
+   <td style="text-align:right;"> 19.54638 </td>
+  </tr>
+</tbody>
+</table>
+
+</div></div>
+  <p>But the maximum donation size isn't that different</p>
+  <p>To see the chance that one page is better than the other I will use the following Stan model:</p>
+  <pre>
+data {
+  int<lower=0> N1;
+  int<lower=0> N2;
+  int<lower=0,upper=1> donated1[N1];
+  int<lower=0,upper=1> donated2[N2];
+  real<lower=0> donation_amount1[N1];
+  real<lower=0> donation_amount2[N2];
+}
+parameters {
+  real<lower=0,upper=1> convr1;
+  real<lower=0,upper=1> convr2;
+  real<lower=0> donation_mean1;
+  real<lower=0> donation_mean2;
+  real<lower=0> donation_sd1;
+  real<lower=0> donation_sd2;
+}
+model {
+  for (i in 1:N1) {
+    donated1[i] ~ bernoulli(convr1);
+    if (donated1[i]==1) {
+      donation_amount1[i] ~ normal(donation_mean1, donation_sd1);
+    }
+  }
+  for (i in 1:N2) {
+    donated2[i] ~ bernoulli(convr2);
+    if (donated2[i]==1) {
+      donation_amount2[i] ~ normal(donation_mean2, donation_sd2);
+    }
+  }
+}
+  </pre>
+  <p>And fit it using the generated data</p>
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl kwd">library</span><span class="hl std">(rstan)</span>
+    <span class="hl kwd">rstan_options</span><span class="hl std">(</span><span class="hl kwc">auto_write</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+    <span class="hl kwd">options</span><span class="hl std">(</span><span class="hl kwc">mc.cores</span> <span class="hl std">= parallel</span><span class="hl opt">::</span><span class="hl kwd">detectCores</span><span class="hl std">())</span>
+    <span class="hl std">model</span> <span class="hl kwb">&lt;-</span> <span class="hl str">[1134 chars quoted with '&quot;']</span>
+
+    <span class="hl std">d</span> <span class="hl kwb">=</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwc">N1</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">,</span> <span class="hl kwc">N2</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">,</span>
+             <span class="hl kwc">donation_amount1</span> <span class="hl std">= page1,</span> <span class="hl kwc">donation_amount2</span> <span class="hl std">= page2,</span>
+             <span class="hl kwc">donated1</span> <span class="hl std">=</span> <span class="hl kwd">as.integer</span><span class="hl std">(page1</span> <span class="hl opt">&gt;</span> <span class="hl num">0</span><span class="hl std">),</span> <span class="hl kwc">donated2</span> <span class="hl std">=</span> <span class="hl kwd">as.integer</span><span class="hl std">(page2</span> <span class="hl opt">&gt;</span> <span class="hl num">0</span><span class="hl std">))</span>
+
+    <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl kwc">seed</span><span class="hl std">=</span><span class="hl num">152</span><span class="hl std">,</span><span class="hl kwc">refresh</span> <span class="hl std">=</span> <span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span>
+</pre></div>
+  <p>Finally, extract the statistic of interest out of the samples</p>
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
+    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
+</pre></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.73115
+</pre></div>
+</div></div></div>
+  <p>
+    There is a 73% chance that the conversion rate for page 1 is better than page 2.</p>
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">donation_mean1</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">donation_mean2</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
+</pre></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.4732
+</pre></div>
+</div></div></div>
+  <p>And a 53% chance that page 2 generates more donations per visit than page 1.</p>
+  <p>Most people either wouldn't take any action off these numbers or would declare the challenger to have failed with the incumbent page being the winner</p>
+  <p>Now add a large donation to page 2 and redo the computation</p>
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl std">page2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1000</span><span class="hl std">,page2)</span>
+
+    <span class="hl std">d</span> <span class="hl kwb">=</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwc">N1</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">,</span> <span class="hl kwc">N2</span> <span class="hl std">=</span> <span class="hl num">1001</span><span class="hl std">,</span>
+       <span class="hl kwc">donation_amount1</span> <span class="hl std">= page1,</span> <span class="hl kwc">donation_amount2</span> <span class="hl std">= page2,</span>
+       <span class="hl kwc">donated1</span> <span class="hl std">=</span> <span class="hl kwd">as.integer</span><span class="hl std">(page1</span> <span class="hl opt">&gt;</span> <span class="hl num">0</span><span class="hl std">),</span> <span class="hl kwc">donated2</span> <span class="hl std">=</span> <span class="hl kwd">as.integer</span><span class="hl std">(page2</span> <span class="hl opt">&gt;</span> <span class="hl num">0</span><span class="hl std">))</span>
+
+    <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl kwc">seed</span><span class="hl std">=</span><span class="hl num">152</span><span class="hl std">,</span> <span class="hl kwc">refresh</span> <span class="hl std">=</span> <span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span>
+    <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
+    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
+</pre></div>
+<div class='wrapoutput'>
+    <div class="output"><pre class="knitr r">## [1] 0.69605
+    </pre></div></div>
+  <p>A 70% chance that page 1 has a better conversion rate than page 2 (this is expected - we've only added one extra conversion).</p>
+<div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">donation_mean1</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">donation_mean2</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
+</pre></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.099
+</pre></div>
+</div></div></div>
+  <p>But page 2 is 99% more likely to generate more donation dollars per visit!</p>
+  <p>This is exactly what Dan was talking about - the test result gets massively skewed by a single random donation.</p>
+  <p>"Skewed" is a bit of a loaded word here, "changed" would be more neutral, but my intuition says that a single donation should not change the result this much.</p>
+  <p>As I've said before, when the model doesn't agree with intuition one of the following things must be going on:
+    <ol>
+      <li>My intuition is wrong</li>
+      <li>The model is wrong</li>
+      <li>All of the above</li>
+    </ol>
+  </p>
+  <p>For the purposes of this discussion, let's go with option 2 and try to find another model.</p>
+  <h2>Second attempt</h2>
+  <p>Our first model was that, for each page, users convert with probability <code>convr</code> and then those that convert make a donation with an amount drawn from a normal distribution having mean <code>donation_mean</code> and standard deviation <code>donation_sd</code>.
+  </p>
+  <p>The model fails because the donation amounts are not normally distributed; there are a lot of small donations and a small number of much larger donations. The larger donations distort our estimate of the mean even though there is only a small number of them.</p>
+  <p>By picking a distribution with heavier tails this problem can be reduced.</p>
+  <p>Change the model to the following:</p>
+  <pre>
+data {
+  int<lower=0> N1;
+  int<lower=0> N2;
+  int<lower=0,upper=1> donated1[N1];
+  int<lower=0,upper=1> donated2[N2];
+  real<lower=0> donation_amount1[N1];
+  real<lower=0> donation_amount2[N2];
+}
+parameters {
+  real<lower=0,upper=1> convr1;
+  real<lower=0,upper=1> convr2;
+  real<lower=0> pareto_shape1;
+  real<lower=0> pareto_shape2;
+}
+model {
+  for (i in 1:N1) {
+    donated1[i] ~ bernoulli(convr1);
+    if (donated1[i]==1) {
+      donation_amount1[i] ~ pareto(0.1,pareto_shape1);
+    }
+  }
+  for (i in 1:N2) {
+    donated2[i] ~ bernoulli(convr2);
+    if (donated2[i]==1) {
+      donation_amount2[i] ~ pareto(0.1,pareto_shape2);
+    }
+  }
+}
+  </pre>
+  <p>Instead of a normal distribution, this model assumes that the donation amounts come from a pareto distribution with minimum <code>0.1</code> and shape <code>pareto_shape</code></p>
+  <p>Fit the model on the data:</p>
+<div class="chunk" id="unnamed-chunk-9"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl std">model</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;data {
+      int&lt;lower=0&gt; N1;
+      int&lt;lower=0&gt; N2;
+      int&lt;lower=0,upper=1&gt; donated1[N1];
+      int&lt;lower=0,upper=1&gt; donated2[N2];
+      real&lt;lower=0&gt; donation_amount1[N1];
+      real&lt;lower=0&gt; donation_amount2[N2];
+    }
+    parameters {
+      real&lt;lower=0,upper=1&gt; convr1;
+      real&lt;lower=0,upper=1&gt; convr2;
+      real&lt;lower=0&gt; pareto_shape1;
+      real&lt;lower=0&gt; pareto_shape2;
+    }
+    model {
+      for (i in 1:N1) {
+        donated1[i] ~ bernoulli(convr1);
+        if (donated1[i]==1) {
+          donation_amount1[i] ~ pareto(0.1,pareto_shape1);
+        }
+      }
+      for (i in 1:N2) {
+        donated2[i] ~ bernoulli(convr2);
+        if (donated2[i]==1) {
+          donation_amount2[i] ~ pareto(0.1,pareto_shape2);
+        }
+      }
+   }&quot;</span>
+   <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl kwc">seed</span><span class="hl std">=</span><span class="hl num">152</span><span class="hl std">,</span> <span class="hl kwc">refresh</span> <span class="hl std">=</span> <span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span>
+</pre></div>
+<div class="source"><pre class="knitr r">   <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
+   <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
+</pre></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.6975
+</pre></div>
+</div><div class="source"><pre class="knitr r">   <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape1</span><span class="hl opt">*</span><span class="hl num">0.1</span><span class="hl opt">/</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape1</span><span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape2</span><span class="hl opt">*</span><span class="hl num">0.1</span><span class="hl opt">/</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape2</span><span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">))</span><span class="hl opt">/</span><span class="hl num">20000</span>
+</pre></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.3955
+</pre></div>
+</div></div></div>
+  <p>The conversion rate stuff doesn't change, there is still a 70% chance that page 1 has a better conversion rate than page 2</p>
+  <p>But the donated dollars per visit has changed a lot. There is a 70% chance that page 2 is better than page 1 (compared to 99% on the previous model).</p>
+  <p>This seems more reasonable to me but in real life there would still be more work to do: I picked the pareto distribution because it is a heavy tailed distribution that I've heard of. It might not be the best fit for the real life data - if the tail is too fat this would cause us to reject pages that are actually better and if the tail is too thin we will declare winners that aren't actually any better.</p>
+  </div>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>

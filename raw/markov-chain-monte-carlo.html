@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style type="text/css">
+.knitr .inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage .left {
+  text-align: left;
+}
+.rimage .right {
+  text-align: right;
+}
+.rimage .center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+
+  <meta charset="utf-8">
+  <title>Markov Chain Monte Carlo</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link rel="stylesheet" href="/css/skeleton.css">
+  <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
+    }});
+  </script>
+  <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <script src="/js/r-tutorial.js"></script>
+  <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Markov Chain Monte Carlo</h1>
+    <p>
+      An introduction to Markov Chain Monte Carlo, supporting presentations
+      given at MeasureCamp, Web Analytics Wednesday and PPC Chat Live.
+    </p>
+    <p>Last updated on <code class="knitr inline">Thursday 26 May 2016</code></p>
+    <h2>Introduction and Motivation</h2>
+    <p>Suppose you have the following data and what to plot a straight line of
+      best fit:</p>
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">raw</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">3</span><span class="hl std">,</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl num">5</span><span class="hl std">,</span><span class="hl num">6</span><span class="hl std">),</span>
+                    <span class="hl kwc">y</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">4.06</span><span class="hl std">,</span><span class="hl num">3.264</span><span class="hl std">,</span><span class="hl num">16.376</span><span class="hl std">,</span><span class="hl num">15.638</span><span class="hl std">,</span><span class="hl num">14.076</span><span class="hl std">,</span><span class="hl num">16.571</span><span class="hl std">)</span>
+                   <span class="hl std">)</span>
+  <span class="hl kwd">kable</span><span class="hl std">(raw)</span>
+</pre></div>
+<table>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> x </th>
+   <th style="text-align:right;"> y </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 4.060 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 3.264 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 16.376 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 15.638 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 14.076 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 16.571 </td>
+  </tr>
+</tbody>
+</table>
+
+</div></div>
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">library</span><span class="hl std">(ggplot2)</span>
+  <span class="hl std">rawplot</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">ggplot</span><span class="hl std">(raw,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=x,</span><span class="hl kwc">y</span><span class="hl std">=y))</span> <span class="hl opt">+</span>
+     <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">size</span><span class="hl std">=</span><span class="hl num">5</span><span class="hl std">)</span> <span class="hl opt">+</span>
+     <span class="hl kwd">xlim</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">7</span><span class="hl std">))</span> <span class="hl opt">+</span>
+     <span class="hl kwd">ylim</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">20</span><span class="hl std">))</span> <span class="hl opt">+</span>
+     <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+  <span class="hl std">rawplot</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-3-1.png" title="plot of chunk unnamed-chunk-3" alt="plot of chunk unnamed-chunk-3" class="plot" /></div></div>
+    <p>How do you actually do this?</p>
+    <p>In real life, you use a built in function (`lm` in R or something else in
+    Excel) and you don't really worry too much about what is happening behind
+      the scenes.</p>
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">lm</span><span class="hl std">(y</span><span class="hl opt">~</span><span class="hl std">x,</span><span class="hl kwc">data</span><span class="hl std">=raw)</span>
+  <span class="hl std">fit</span>
+</pre></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## 
+## Call:
+## lm(formula = y ~ x, data = raw)
+## 
+## Coefficients:
+## (Intercept)            x  
+##       2.239        2.693
+</pre></div>
+</div></div></div>
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">bflineplot</span> <span class="hl kwb">&lt;-</span> <span class="hl std">rawplot</span> <span class="hl opt">+</span> <span class="hl kwd">geom_abline</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">=fit</span><span class="hl opt">$</span><span class="hl std">coefficients[</span><span class="hl num">2</span><span class="hl std">],</span>
+                        <span class="hl kwc">intercept</span><span class="hl std">=fit</span><span class="hl opt">$</span><span class="hl std">coefficients[</span><span class="hl num">1</span><span class="hl std">],</span>
+                        <span class="hl kwc">color</span><span class="hl std">=</span><span class="hl str">&quot;blue&quot;</span><span class="hl std">,</span><span class="hl kwc">size</span><span class="hl std">=</span><span class="hl num">3</span><span class="hl std">)</span>
+  <span class="hl std">bflineplot</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" class="plot" /></div></div>
+    <p>But what exactly is going on here?</p>
+    <p>I'm going to show you one way of doing this so that I can later contrast
+      it with the Markov Chain Monte Carlo way of doing things.</p>
+    <h4>What is the line of best fit?</h4>
+    <p>For this demonstration I'm going to say that the line of best fit is the
+    straight line that minimises the sum of the squares of the errors. There are
+      other possible definitions here.</p>
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl std">bflineplot</span> <span class="hl opt">+</span> <span class="hl kwd">geom_segment</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=raw</span><span class="hl opt">$</span><span class="hl std">x,</span>
+                             <span class="hl kwc">y</span><span class="hl std">=raw</span><span class="hl opt">$</span><span class="hl std">y,</span>
+                             <span class="hl kwc">yend</span><span class="hl std">=fit</span><span class="hl opt">$</span><span class="hl std">coefficients[</span><span class="hl num">2</span><span class="hl std">]</span><span class="hl opt">*</span><span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">x</span><span class="hl opt">+</span><span class="hl std">fit</span><span class="hl opt">$</span><span class="hl std">coefficients[</span><span class="hl num">1</span><span class="hl std">],</span>
+                             <span class="hl kwc">xend</span><span class="hl std">=raw</span><span class="hl opt">$</span><span class="hl std">x,</span>
+                             <span class="hl kwc">color</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">,</span>
+                             <span class="hl kwc">size</span><span class="hl std">=</span><span class="hl num">2</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" class="plot" /></div></div>
+    <p>The line of best fit is the straight line that minimises the sum of the
+      squared length of all the green lines.</p>
+    <p>For those of you who speak R, this might be easier to understand with the
+      following function that calculates the error we are trying to minimise.</p>
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl std">calculate_error</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">,</span><span class="hl kwc">intercept</span><span class="hl std">) {</span>
+      <span class="hl std">predicted_y</span> <span class="hl kwb">&lt;-</span> <span class="hl std">slope</span><span class="hl opt">*</span><span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">x</span> <span class="hl opt">+</span> <span class="hl std">intercept</span>
+      <span class="hl std">squared_error</span> <span class="hl kwb">&lt;-</span> <span class="hl std">(predicted_y</span> <span class="hl opt">-</span> <span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">y)</span><span class="hl opt">^</span><span class="hl num">2</span>
+      <span class="hl kwd">return</span><span class="hl std">(</span> <span class="hl kwd">sum</span><span class="hl std">(squared_error) )</span>
+   <span class="hl std">}</span>
+</pre></div>
+</div></div>
+    <p>This can be plotted (contour plot because plotting 3D seems hard!)</p>
+<div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">slopes</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">7</span><span class="hl std">,</span><span class="hl num">0.1</span><span class="hl std">)</span>
+  <span class="hl std">intercepts</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">9</span><span class="hl std">,</span><span class="hl num">0.1</span><span class="hl std">)</span>
+  <span class="hl std">plot3Ddata</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">expand.grid</span><span class="hl std">(slopes,intercepts)</span>
+  <span class="hl kwd">names</span><span class="hl std">(plot3Ddata)</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;slope&quot;</span><span class="hl std">,</span><span class="hl str">&quot;intercept&quot;</span><span class="hl std">)</span>
+  <span class="hl std">plot3Ddata</span><span class="hl opt">$</span><span class="hl std">error</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">sapply</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl kwd">nrow</span><span class="hl std">(plot3Ddata),</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">)</span> <span class="hl kwd">calculate_error</span><span class="hl std">(plot3Ddata</span><span class="hl opt">$</span><span class="hl std">slope[x],plot3Ddata</span><span class="hl opt">$</span><span class="hl std">intercept[x]))</span>
+  <span class="hl std">contourplot</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">ggplot</span><span class="hl std">(plot3Ddata,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=slope,</span><span class="hl kwc">y</span><span class="hl std">=intercept,</span><span class="hl kwc">z</span><span class="hl std">=error))</span> <span class="hl opt">+</span>
+                      <span class="hl kwd">geom_contour</span><span class="hl std">(</span><span class="hl kwc">binwidth</span><span class="hl std">=</span><span class="hl num">10</span><span class="hl std">)</span> <span class="hl opt">+</span>
+                      <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+  <span class="hl std">contourplot</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" class="plot" /></div></div>
+    <p>This shows that the error is minimised with a slope value somewhere
+    between about 2.5 and 3 and an intercept somewhere between about 1.5 and
+      2.6.</p>
+    <p>In this case, we can determine the value analytically [warning:
+      maths]</p>
+    <small>The important thing isn't that you follow the derivation below. The
+    point is that the derivation exists and that a direct solution can be found.</small>
+    <p>
+      $$ error(slope,intercept) = \sum_{i=1}^{i=n} (y_{i} - (slope \circ x_{i} +
+      intercept))^2 $$
+      $$ \frac{\partial error}{\partial slope} = -2 \sum_{i=1}^{i=n} (y_{i} - (slope \circ x_{i} +
+      intercept)) \circ x_{i} $$
+      $$ \frac{\partial error}{\partial intercept} = -2 \sum_{i=1}^{i=n} (y_{i} - (slope \circ x_{i} +
+      intercept)) $$
+      At the minimum, both of these are zero. Rearranging the second of the
+      above derivatives gives
+      $$ intercept = \frac{\sum y_i - slope \circ \sum x_i}{n}  $$
+      $$ intercept = \bar{y} - slope \circ \bar{x} $$
+      Where $\bar{x}$ and $\bar{y}$ are the means of the $x_i$ and $y_i$
+      respectively.<br/>
+      Then substitute back into the slope equation
+      $$ 0 = \sum y_i x_i - slope \sum x_{i}^2 - intercept \sum x_i $$
+      $$ 0 = \sum y_i x_i - slope \sum x_{i}^2 - (\bar{y} - slope \circ \bar{x})
+      \sum x_i $$
+      Rearranging for slope
+      $$ slope = \frac{\sum x_i y_i - \bar{y} \sum x_{i}}{\sum x_i^{2} - \bar{x}
+      \sum x_i} $$
+    </p>
+    <p>In R:
+<div class="chunk" id="unnamed-chunk-9"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">s</span> <span class="hl kwb">&lt;-</span> <span class="hl std">(</span><span class="hl kwd">sum</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">x</span><span class="hl opt">*</span><span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">y)</span><span class="hl opt">-</span><span class="hl kwd">mean</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">y)</span><span class="hl opt">*</span><span class="hl kwd">sum</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">x))</span> <span class="hl opt">/</span>
+       <span class="hl std">(</span><span class="hl kwd">sum</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">x</span><span class="hl opt">*</span><span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">x)</span> <span class="hl opt">-</span> <span class="hl kwd">mean</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">x)</span><span class="hl opt">*</span><span class="hl kwd">sum</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">x))</span>
+  <span class="hl std">i</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">mean</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">y)</span> <span class="hl opt">-</span> <span class="hl std">s</span> <span class="hl opt">*</span> <span class="hl kwd">mean</span><span class="hl std">(raw</span><span class="hl opt">$</span><span class="hl std">x)</span>
+  <span class="hl kwd">kable</span><span class="hl std">(</span><span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Slope</span><span class="hl std">=s,</span><span class="hl kwc">Intercept</span><span class="hl std">=i))</span>
+</pre></div>
+<table>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> Slope </th>
+   <th style="text-align:right;"> Intercept </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 2.692943 </td>
+   <td style="text-align:right;"> 2.238867 </td>
+  </tr>
+</tbody>
+</table>
+
+</div></div>
+<div class="chunk" id="unnamed-chunk-10"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">contourplot</span> <span class="hl opt">+</span> <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=s,</span><span class="hl kwc">y</span><span class="hl std">=i,</span><span class="hl kwc">colour</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">,</span><span class="hl kwc">size</span><span class="hl std">=</span><span class="hl num">3</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-10-1.png" title="plot of chunk unnamed-chunk-10" alt="plot of chunk unnamed-chunk-10" class="plot" /></div></div>
+    </p>
+    <p>
+      This approach is great if you want a single answer that minimises the
+      squared error. And in some circumstances this should be exactly what you
+      want.
+    </p>
+    <p>
+      But in other circumstances questions like "what is the probability that
+      the slope is greater than 1.4?" or "how likely is it that the intercept is
+      greater than zero?" are more appropriate.
+    </p>
+    <p>(The slope question might occur if you are investigating the relationship
+    between media spend and revenue - here the slope is the estimated increase
+    in revenue for a unit increase in spend. If the channel has a slope greater
+    than the slope of the next best channel then it should get more budget. Of
+      course, a <em>linear</em> model is probably not appropriate here.)</p>
+    <h3>Random Processes</h3>
+    <p>To attack the problem from this direction we need to rephrase it: rather
+    than trying to find the straight line that minimises the squared errors we
+      are looking for something else.</p>
+    <p>If we knew the probability distributions of the model parameters we would
+      be able to answer our questions. In mathy notation we want to find
+      $$ P(model | data) $$
+      Where $data$ is the stuff we observed.
+    </p>
+    <p>
+      We can think of our data being generated by a <em>random process</em>:
+      $$ error_i \sim N(0,\sigma) $$
+      $$ y_i = slope \circ x_i + intercept + error_i $$
+    </p>
+    <p>
+      What this says is that the $y_i$ are generated from the $x_i$ using $y =
+      slope \circ x + intercept$ with an extra error term.</p>
+    <p>We don't know exactly what the error is, but we assume that it is
+    normally distributed with mean 0 (so positive and negative errors are
+      equally likely) and unknown standard deviation $\sigma$.
+    </p>
+    <p>
+      With this model we can directly answer questions like "if the slope was 3,
+      the intercept 0 and the standard deviation 1, what is the chance we
+      observe y=5 at x=2?"
+      <small>Again, the actual maths isn't important here. The important thing
+      is that you realise it is quite easy to calculate the probability of
+      observing some specific data given a model.</small>
+      $$ P(y=5 | x=2, slope=3, intercept=0, \sigma=1) = P(error = -1) $$
+      Because $ 3 \circ 2 + 0 = 6 $ so the error must be -1
+      $$ P(error = -1) = P(N(0,1)=-1) $$
+      Where $N(0,1)$ is the normal distribution density function
+      $$ P(error = -1) = \frac{1}{\sqrt{2 \pi}} e^{-\frac{1}{2}} $$
+      $$ P(error = -1) = 0.242 $$
+      I have abused notation and concepts when talking about continuous
+      distributions. I think I'm on safe enough ground here to get away with
+      it but please let me know if you get trapped in a paradox as a result of
+      this.
+    </p>
+    <p> So we can find
+      $$ P(data | model) $$
+      fairly easily, using the kind of techniques you might have learned at
+      school (A-level maybe?)
+    </p>
+    <h4>Enter Bayes</h4>
+    <p>Bayes' Theorem tells us that:
+      $$ P(model | data) = \frac{P(data | model)P(model)}{P(data)} $$
+      Here, $P(model)$ is our prior probability of the model and $P(data)$ is
+      the probability of observing the data independently of any model.
+    </p>
+    <p>
+      The important thing to note here is that $P(data)$ is constant over
+      different models. So
+      $$ P(model | data) \propto P(data | model)P(model) $$
+      That is, the probability of the model given the data is proportional to
+      the probability of the data given the model multiplied by our prior on the
+      model.
+    </p>
+    <p>So if we know how to calculate $P(data | model)$ (and generally we do,
+    see example above and more examples below) we can calculate something that
+      is proportional to $P(model | data)$
+    </p>
+    <p>
+      What <strong>Markov Chain Monte Carlo</strong> gives us is a method of
+      sampling from a distribution without needing to know the density function
+      of the distribution; instead we only need something that is proportional
+      to the density function.
+    </p>
+    <p>
+      Which means we can use Markov Chain Monte Carlo on $P(data |
+      model)P(model)$ and the output will be samples from $P(model | data)$
+    </p>
+    <p>Then we can use the samples to see the distributions of the different
+      parameters.</p>
+    <h3>Example</h3>
+    <p>Remember our data from earlier:</p>
+<div class="chunk" id="unnamed-chunk-11"><div class="rcode"><table>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> x </th>
+   <th style="text-align:right;"> y </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 4.060 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 3.264 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 16.376 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 15.638 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 14.076 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 16.571 </td>
+  </tr>
+</tbody>
+</table>
+
+</div></div>
+    <p>We can make a function over our model parameters (slope, intercept,
+    standard deviation of the random error) that tells us
+      $P(data|slope,intercept,\sigma)$
+    </p>
+<div class="chunk" id="unnamed-chunk-12"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">likelihood</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">,</span><span class="hl kwc">intercept</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">) {</span>
+     <span class="hl std">err</span> <span class="hl kwb">&lt;-</span> <span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">y</span> <span class="hl opt">-</span> <span class="hl std">(slope</span><span class="hl opt">*</span><span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">x</span> <span class="hl opt">+</span> <span class="hl std">intercept)</span>
+     <span class="hl std">ls</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">dnorm</span><span class="hl std">(err,</span><span class="hl kwc">mean</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">=sd)</span>
+     <span class="hl kwd">return</span><span class="hl std">(</span><span class="hl kwd">prod</span><span class="hl std">(ls))</span>
+  <span class="hl std">}</span>
+</pre></div>
+</div></div>
+    <p>If you play around with a few values here you see that the likelihoods
+    are very, very small. To stop over/under flow when computers calculate this
+    kind of thing it is normal to use the log of the likelihood function
+      instead.
+    </p>
+<div class="chunk" id="unnamed-chunk-13"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">logLikelihood</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">parameters</span><span class="hl std">) {</span>
+     <span class="hl std">slope</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parameters[</span><span class="hl num">1</span><span class="hl std">]</span>
+     <span class="hl std">intercept</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parameters[</span><span class="hl num">2</span><span class="hl std">]</span>
+     <span class="hl std">sd</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parameters[</span><span class="hl num">3</span><span class="hl std">]</span>
+     <span class="hl kwa">if</span><span class="hl std">(sd</span> <span class="hl opt">&lt;=</span> <span class="hl num">0</span><span class="hl std">) {</span> <span class="hl kwd">return</span><span class="hl std">(</span><span class="hl opt">-</span><span class="hl num">Inf</span><span class="hl std">) }</span>
+     <span class="hl std">err</span> <span class="hl kwb">&lt;-</span> <span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">y</span> <span class="hl opt">-</span> <span class="hl std">(slope</span><span class="hl opt">*</span><span class="hl std">raw</span><span class="hl opt">$</span><span class="hl std">x</span> <span class="hl opt">+</span> <span class="hl std">intercept)</span>
+     <span class="hl std">ls</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">dnorm</span><span class="hl std">(err,</span><span class="hl kwc">mean</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">=sd,</span><span class="hl kwc">log</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">)</span>
+     <span class="hl kwd">return</span><span class="hl std">(</span><span class="hl kwd">sum</span><span class="hl std">(ls))</span>
+     <span class="hl std">}</span>
+</pre></div>
+</div></div>
+   <p>We can then use the mcmc library to get our samples:</p>
+<div class="chunk" id="unnamed-chunk-14"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">library</span><span class="hl std">(mcmc)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in library(mcmc): there is no package called 'mcmc'
+</pre></div>
+<div class="source"><pre class="knitr r">  <span class="hl std">start</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">)</span>
+  <span class="hl std">out</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">metrop</span><span class="hl std">(logLikelihood,start,</span><span class="hl num">1000</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;metrop&quot;
+</pre></div>
+</div></div>
+   <p>Plot the results against the data</p>
+<div class="chunk" id="unnamed-chunk-15"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl std">trace</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(out</span><span class="hl opt">$</span><span class="hl std">batch)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(out$batch): object 'out' not found
+</pre></div>
+<div class="source"><pre class="knitr r">   <span class="hl kwd">names</span><span class="hl std">(trace)</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;slope&quot;</span><span class="hl std">,</span><span class="hl str">&quot;intercept&quot;</span><span class="hl std">,</span><span class="hl str">&quot;sd&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in names(trace) &lt;- c(&quot;slope&quot;, &quot;intercept&quot;, &quot;sd&quot;): names() applied to a non-vector
+</pre></div>
+<div class="source"><pre class="knitr r">   <span class="hl std">rawplot</span> <span class="hl opt">+</span> <span class="hl kwd">geom_abline</span><span class="hl std">(</span><span class="hl kwc">data</span><span class="hl std">=trace,</span>
+                         <span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">=slope,</span><span class="hl kwc">intercept</span><span class="hl std">=intercept),</span>
+                         <span class="hl kwc">alpha</span><span class="hl std">=</span><span class="hl num">0.1</span><span class="hl std">,</span>
+                         <span class="hl kwc">colour</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in .primTrace(what): argument must be a function
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-15-1.png" title="plot of chunk unnamed-chunk-15" alt="plot of chunk unnamed-chunk-15" class="plot" /></div></div>
+   <p>
+     As you can see, this is all over the place. What does this tell us?  
+   </p>
+   <p>
+     It tells us that we can't be very certain of our slope or intercept
+     estimates. We can get more insight here by plotting the marginal
+     distributions.
+   </p>
+<div class="chunk" id="unnamed-chunk-16"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">ggplot</span><span class="hl std">(trace,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=slope))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_histogram</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in if (is.waive(data) || empty(data)) return(cbind(data, PANEL = integer(0))): missing value where TRUE/FALSE needed
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" class="plot" /></div></div>
+    <p>
+      Values for the slope are spread between 0 and 4 and...</p>
+<div class="chunk" id="unnamed-chunk-17"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">ggplot</span><span class="hl std">(trace,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=intercept))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_histogram</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in if (is.waive(data) || empty(data)) return(cbind(data, PANEL = integer(0))): missing value where TRUE/FALSE needed
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-17-1.png" title="plot of chunk unnamed-chunk-17" alt="plot of chunk unnamed-chunk-17" class="plot" /></div></div>
+    <p>values for the intercept are spread between 0 and 10!</p>
+    <p>Back to our example questions:
+      <ol>
+        <li>What is the probability that the slope is greater than 1.4?</li>
+        <li>How likely is it that the intercept is greater than zero?</li>
+      </ol>
+      We can answer these just by examining the samples:
+<div class="chunk" id="unnamed-chunk-18"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Question1</span><span class="hl std">=</span><span class="hl num">1</span><span class="hl opt">-</span><span class="hl kwd">ecdf</span><span class="hl std">(trace</span><span class="hl opt">$</span><span class="hl std">slope)(</span><span class="hl num">1.4</span><span class="hl std">),</span>
+                 <span class="hl kwc">Question2</span><span class="hl std">=</span><span class="hl num">1</span><span class="hl opt">-</span><span class="hl kwd">ecdf</span><span class="hl std">(trace</span><span class="hl opt">$</span><span class="hl std">intercept)(</span><span class="hl num">0</span><span class="hl std">)</span>
+      <span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in trace$slope: object of type 'closure' is not subsettable
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">kable</span><span class="hl std">(df)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in seq_len(m): argument must be coercible to non-negative integer
+</pre></div>
+</div></div>
+    <h3>Example 2</h3>
+    <p>Let's try with another example with a slightly more certain result (and
+    where we know the true model parameters</p>
+<div class="chunk" id="unnamed-chunk-19"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">x</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl kwc">from</span><span class="hl std">=</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl kwc">to</span><span class="hl std">=</span><span class="hl num">6</span><span class="hl std">,</span><span class="hl kwc">by</span><span class="hl std">=</span><span class="hl num">1</span><span class="hl std">)</span>
+  <span class="hl std">y</span> <span class="hl kwb">&lt;-</span> <span class="hl num">3</span><span class="hl opt">*</span><span class="hl std">x</span><span class="hl opt">+</span><span class="hl num">0</span><span class="hl opt">+</span><span class="hl kwd">rnorm</span><span class="hl std">(</span><span class="hl num">6</span><span class="hl std">,</span><span class="hl kwc">mean</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">=</span><span class="hl num">0.5</span><span class="hl std">)</span>
+  <span class="hl std">raw2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=x,</span>
+                     <span class="hl kwc">y</span><span class="hl std">=y</span>
+                    <span class="hl std">)</span>
+  <span class="hl std">raw2plot</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">ggplot</span><span class="hl std">(raw2,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=x,</span><span class="hl kwc">y</span><span class="hl std">=y))</span> <span class="hl opt">+</span>
+                 <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">size</span><span class="hl std">=</span><span class="hl num">5</span><span class="hl std">)</span> <span class="hl opt">+</span>
+                 <span class="hl kwd">xlim</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">7</span><span class="hl std">))</span> <span class="hl opt">+</span>
+                 <span class="hl kwd">ylim</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">20</span><span class="hl std">))</span> <span class="hl opt">+</span>
+                 <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+  <span class="hl std">raw2plot</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-19-1.png" title="plot of chunk unnamed-chunk-19" alt="plot of chunk unnamed-chunk-19" class="plot" /></div></div>
+    <p>Again, we need to make a likelihood function:
+<div class="chunk" id="unnamed-chunk-20"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">logLikelihood</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">parameters</span><span class="hl std">) {</span>
+ <span class="hl std">slope</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parameters[</span><span class="hl num">1</span><span class="hl std">]</span>
+ <span class="hl std">intercept</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parameters[</span><span class="hl num">2</span><span class="hl std">]</span>
+ <span class="hl std">sd</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parameters[</span><span class="hl num">3</span><span class="hl std">]</span>
+ <span class="hl kwa">if</span><span class="hl std">(sd</span> <span class="hl opt">&lt;=</span> <span class="hl num">0</span><span class="hl std">) {</span> <span class="hl kwd">return</span><span class="hl std">(</span><span class="hl opt">-</span><span class="hl num">Inf</span><span class="hl std">) }</span>
+ <span class="hl std">err</span> <span class="hl kwb">&lt;-</span> <span class="hl std">raw2</span><span class="hl opt">$</span><span class="hl std">y</span> <span class="hl opt">-</span> <span class="hl std">(slope</span><span class="hl opt">*</span><span class="hl std">raw2</span><span class="hl opt">$</span><span class="hl std">x</span> <span class="hl opt">+</span> <span class="hl std">intercept)</span>
+ <span class="hl std">ls</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">dnorm</span><span class="hl std">(err,</span><span class="hl kwc">mean</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl kwc">sd</span><span class="hl std">=sd,</span><span class="hl kwc">log</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">)</span>
+ <span class="hl kwd">return</span><span class="hl std">(</span><span class="hl kwd">sum</span><span class="hl std">(ls))</span>
+ <span class="hl std">}</span>
+</pre></div>
+</div></div>
+    </p>
+    <p>After which, we can do our sampling:</p>
+<div class="chunk" id="unnamed-chunk-21"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">out</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">metrop</span><span class="hl std">(logLikelihood,start,</span><span class="hl num">1000</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;metrop&quot;
+</pre></div>
+<div class="source"><pre class="knitr r">  <span class="hl std">trace</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(out</span><span class="hl opt">$</span><span class="hl std">batch)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(out$batch): object 'out' not found
+</pre></div>
+<div class="source"><pre class="knitr r">  <span class="hl kwd">names</span><span class="hl std">(trace)</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;slope&quot;</span><span class="hl std">,</span><span class="hl str">&quot;intercept&quot;</span><span class="hl std">,</span><span class="hl str">&quot;sd&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in names(trace) &lt;- c(&quot;slope&quot;, &quot;intercept&quot;, &quot;sd&quot;): names() applied to a non-vector
+</pre></div>
+<div class="source"><pre class="knitr r">  <span class="hl std">raw2plot</span> <span class="hl opt">+</span> <span class="hl kwd">geom_abline</span><span class="hl std">(</span><span class="hl kwc">data</span><span class="hl std">=trace,</span>
+                     <span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">=slope,</span><span class="hl kwc">intercept</span><span class="hl std">=intercept),</span>
+                     <span class="hl kwc">alpha</span><span class="hl std">=</span><span class="hl num">0.1</span><span class="hl std">,</span>
+                     <span class="hl kwc">colour</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in .primTrace(what): argument must be a function
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-21-1.png" title="plot of chunk unnamed-chunk-21" alt="plot of chunk unnamed-chunk-21" class="plot" /></div></div>
+    <p>Here we are much more sure about what the slope and intercept might be -
+      the distributions are much "narrower"</p>
+<div class="chunk" id="unnamed-chunk-22"><div class="rcode"><div class="source"><pre class="knitr r"> <span class="hl std">slopetrace</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">ggplot</span><span class="hl std">(trace,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=slope))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_histogram</span><span class="hl std">()</span> <span class="hl opt">+</span>
+  <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+ <span class="hl std">slopetrace</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in if (is.waive(data) || empty(data)) return(cbind(data, PANEL = integer(0))): missing value where TRUE/FALSE needed
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-22-1.png" title="plot of chunk unnamed-chunk-22" alt="plot of chunk unnamed-chunk-22" class="plot" /></div></div>
+<div class="chunk" id="unnamed-chunk-23"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">intercepttrace</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">ggplot</span><span class="hl std">(trace,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=intercept))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_histogram</span><span class="hl std">()</span> <span class="hl opt">+</span>
+   <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+  <span class="hl std">intercepttrace</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in if (is.waive(data) || empty(data)) return(cbind(data, PANEL = integer(0))): missing value where TRUE/FALSE needed
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-23-1.png" title="plot of chunk unnamed-chunk-23" alt="plot of chunk unnamed-chunk-23" class="plot" /></div></div>
+<div class="chunk" id="unnamed-chunk-24"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl com"># recall that the true value is 3</span>
+  <span class="hl kwd">mean</span><span class="hl std">(trace</span><span class="hl opt">$</span><span class="hl std">slope)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in trace$slope: object of type 'closure' is not subsettable
+</pre></div>
+</div></div>
+    <p>
+      Not bad! And we could probably do better by increasing the number of
+     iterations
+    </p>
+    <h2>Sampling Methods</h2>
+    <p>Unfortunately the above has glossed over some interesting details of why
+      all this works:
+      <ol>
+        <li>How are the samples generated?</li>
+        <li>Why is it that we can sample from the actual distributions when we
+          only know something that is proportional to the density function?</li>
+      </ol>
+      I'm not going to touch the second one of these at all and I'm not going to
+      go into the first one in much depth. I'm just getting this deep into the
+      subject matter myself at the moment and I fear I couldn't do it justice.
+    </p>
+    <h3>Metropolis-Hastings</h3>
+    The examples above (using the `metrop` function) use a sampling methodology
+    called "Metropolis-Hastings".
+    <p>Advantages of Metropolis-Hastings:
+      <ul>
+        <li>Fast generation of samples</li>
+        <li>Fairly simple</li>
+        <li>Doesn't require computing derivatives</li>
+      </ul>
+      Disadvantages:
+      <ul>
+        <li>Requires manual "tuning" of parameters</li>
+        <li>Can struggle with "skewed" and "stretched" distributions (known
+          as <em>anisotropic <d>$1</d>istributions</em>. See
+          <a href="http://jtobin.ca/flat-mcmc/">here</a> for some visualisations
+          of this problem.
+        </li>
+        <li>No cool points from the MCMC community for using this</li>
+      </ul>
+      Metropolis-Hastings goes on
+      a <a href="https://en.wikipedia.org/wiki/Random_walk">random walk</a>
+      around the parameter space. At each stage, a new position is proposed and
+      then the Markov Chain moves there or stays in the same spot depending on
+      how likely the proposed position is compared to the current position.</p>
+    <p>
+      The main thing to "tune" for Metropolis-Hastings is how far it moves at
+      each step. If it tries to move too far then the proposed position is
+      likely to be rejected and the chain will stay in one place.
+    </p>
+    <p>
+      If it doesn't move far enough then the chain will stay roughly in the same
+      place and not explore the whole distribution.
+    </p>
+    <p>We must also specify where the chain starts from (the variable `start` in
+      the examples above)</p>
+    <p>Picking bad values for these things can lead to bad results as we see in
+      the below examples:</p>
+<div class="chunk" id="unnamed-chunk-25"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># start position miles away from true values</span>
+<span class="hl std">out</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">metrop</span><span class="hl std">(logLikelihood,</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">100</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">),</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl kwc">scale</span><span class="hl std">=</span><span class="hl num">1</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;metrop&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">trace2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(out</span><span class="hl opt">$</span><span class="hl std">batch)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(out$batch): object 'out' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">names</span><span class="hl std">(trace2)</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;slope&quot;</span><span class="hl std">,</span><span class="hl str">&quot;intercept&quot;</span><span class="hl std">,</span><span class="hl str">&quot;sd&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in names(trace2) &lt;- c(&quot;slope&quot;, &quot;intercept&quot;, &quot;sd&quot;): object 'trace2' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">raw2plot</span>  <span class="hl opt">+</span> <span class="hl kwd">geom_abline</span><span class="hl std">(</span><span class="hl kwc">data</span><span class="hl std">=trace2,</span>
+                 <span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">=slope,</span><span class="hl kwc">intercept</span><span class="hl std">=intercept),</span>
+                 <span class="hl kwc">alpha</span><span class="hl std">=</span><span class="hl num">0.1</span><span class="hl std">,</span>
+                 <span class="hl kwc">colour</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in fortify(data): object 'trace2' not found
+</pre></div>
+</div></div>
+<div class="chunk" id="unnamed-chunk-26"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># huge step size</span>
+<span class="hl std">out</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">metrop</span><span class="hl std">(logLikelihood,</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">),</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl kwc">scale</span><span class="hl std">=</span><span class="hl num">10</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;metrop&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">trace3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(out</span><span class="hl opt">$</span><span class="hl std">batch)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(out$batch): object 'out' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">names</span><span class="hl std">(trace3)</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;slope&quot;</span><span class="hl std">,</span><span class="hl str">&quot;intercept&quot;</span><span class="hl std">,</span><span class="hl str">&quot;sd&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in names(trace3) &lt;- c(&quot;slope&quot;, &quot;intercept&quot;, &quot;sd&quot;): object 'trace3' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">raw2plot</span>  <span class="hl opt">+</span> <span class="hl kwd">geom_abline</span><span class="hl std">(</span><span class="hl kwc">data</span><span class="hl std">=trace3,</span>
+                 <span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">=slope,</span><span class="hl kwc">intercept</span><span class="hl std">=intercept),</span>
+                 <span class="hl kwc">alpha</span><span class="hl std">=</span><span class="hl num">0.5</span><span class="hl std">,</span>
+                 <span class="hl kwc">colour</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in fortify(data): object 'trace3' not found
+</pre></div>
+</div></div>
+   <p>
+    Tuning can be tricky - particularly because in some cases you don't even
+    know what good looks like. Trying to tune something when you don't know if it
+    is getting better can be hard - there are a few MCMC specific techniques for
+    this that you can lookup elsewhere, but all of these are of the form "if it
+    is bad then you will see this". None of them assert that "if you don't see
+    this then it is all good".
+   </p>
+   <h3>NUTS</h3>
+   <p>The "No U-Turn Sampler" doesn't require as much tuning as
+     Metropolis-Hastings <strong>and</strong> it has a specialised model
+     specification format that means you don't need to write your own likelihood
+     functions!
+   </p>
+<div class="chunk" id="unnamed-chunk-27"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">library</span><span class="hl std">(rstan)</span>
+  <span class="hl kwd">rstan_options</span><span class="hl std">(</span><span class="hl kwc">auto_write</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+  <span class="hl kwd">options</span><span class="hl std">(</span><span class="hl kwc">mc.cores</span> <span class="hl std">= parallel</span><span class="hl opt">::</span><span class="hl kwd">detectCores</span><span class="hl std">())</span>
+
+  <span class="hl std">model</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;data {
+              int&lt;lower=0&gt;N; //the number of observations
+              real x[N];
+              real y[N];
+            }
+            parameters {
+              real slope;
+              real intercept;
+              real&lt;lower=0&gt; sigma;
+            }
+            transformed parameters {
+              real err[N];
+              for (i in 1:N) {
+                err[i] &lt;- y[i] - slope * x[i] - intercept;
+              }
+            }
+            model {
+              err ~ normal(0,sigma);
+            }&quot;</span>
+  <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">1000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in stan(model_code = model, data = d, iter = 1000, chains = 4): object 'd' not found
+</pre></div>
+</div></div>
+    <p>There is a nice library for exploring stan chains called "shinystan"
+<div class="chunk" id="unnamed-chunk-28"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">library</span><span class="hl std">(shinystan)</span>
+  <span class="hl kwd">launch_shinystan</span><span class="hl std">(fit)</span>
+  <span class="hl com"># browser opens for you to explore model</span>
+</pre></div>
+</div></div>
+    <p>To get some output in this document I will use ggplot</p>
+<div class="chunk" id="unnamed-chunk-29"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;extract&quot;
+</pre></div>
+<div class="source"><pre class="knitr r">  <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(samples)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(samples): object 'samples' not found
+</pre></div>
+<div class="source"><pre class="knitr r">  <span class="hl std">raw2plot</span>  <span class="hl opt">+</span> <span class="hl kwd">geom_abline</span><span class="hl std">(</span><span class="hl kwc">data</span><span class="hl std">=samples,</span>
+             <span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">slope</span><span class="hl std">=slope,</span><span class="hl kwc">intercept</span><span class="hl std">=intercept),</span>
+             <span class="hl kwc">alpha</span><span class="hl std">=</span><span class="hl num">0.01</span><span class="hl std">,</span>
+             <span class="hl kwc">colour</span><span class="hl std">=</span><span class="hl str">&quot;green&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in fortify(data): object 'samples' not found
+</pre></div>
+</div></div>
+   <p>Compare how "smooth" the plots of the marginal distributions are compared
+     to our first effort with Metropolis-Hastings; this is because there was no
+     attempt at tuning with the first demo.</p>
+
+<div class="chunk" id="unnamed-chunk-31"><div class="rcode"><div class="error"><pre class="knitr r">## Error in ggplot(samples, aes(x = slope)): object 'samples' not found
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in ggplot(samples, aes(x = intercept)): object 'samples' not found
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in multiplot(slopetracemh, intercepttracemh, slopetracenuts, intercepttracenuts, : object 'slopetracenuts' not found
+</pre></div>
+</div></div>
+    <p>For the rest of this document, I'm going to use stan for the examples to
+      save the hassle of tuning and figuring out likelihood functions.</p>
+    <h2>Case Studies</h2>
+    <p>
+      These case studies use made up data. They should be seen as a study of
+      the method and process rather than the results.
+    </p>
+    <h3>Brand Search Uplift</h3>
+    <p>
+      A client with <em>extremely</em> good brand recognition and little or no
+      SERP competition was naturally concerned about the amount of money being
+      spent on brand clicks (~40% of their budget).
+    </p>
+    <p>
+      Their main investors also had a very switched on analytics guy who was
+      asking tricky questions around incremental value. We had to run an
+      experiment to figure out what was going on.
+    </p>
+    <h4>Experiment Setup</h4>
+    <ol>
+      <li>
+        Find two cities with similar volume. The volumes don't have to be
+        identical (which is good, because they never are) but there is an important
+        model assumption later that the volumes are proportional to each other. We
+        used Edinburgh and Glasgow for this test
+      </li>
+      <li>
+        Pause the ads in one location for a week. Don't change anything in the
+        other location<br/>
+        We chose a week here to align with the length of the buying cycle. More
+        discussion on this below.
+      </li>
+      <li>
+        Reactivate the paused ads and pause ads in the other location. Do this
+        for a week as well.
+      </li>
+      <li>
+        Analyse the results
+      </li>
+    </ol>
+    <h4>Results Analysis</h4>
+    <p>Suppose the results looked a bit like the following:
+<div class="chunk" id="unnamed-chunk-32"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl std">rawBrand</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Edinburgh</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">332</span><span class="hl std">,</span><span class="hl num">258</span><span class="hl std">,</span><span class="hl num">219</span><span class="hl std">,</span><span class="hl num">240</span><span class="hl std">,</span><span class="hl num">183</span><span class="hl std">,</span><span class="hl num">162</span><span class="hl std">,</span><span class="hl num">241</span><span class="hl std">,</span><span class="hl num">209</span><span class="hl std">,</span><span class="hl num">209</span><span class="hl std">,</span><span class="hl num">214</span><span class="hl std">,</span><span class="hl num">200</span><span class="hl std">,</span><span class="hl num">202</span><span class="hl std">,</span><span class="hl num">178</span><span class="hl std">,</span><span class="hl num">221</span><span class="hl std">),</span>
+                          <span class="hl kwc">Glasgow</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">381</span><span class="hl std">,</span><span class="hl num">252</span><span class="hl std">,</span><span class="hl num">281</span><span class="hl std">,</span><span class="hl num">243</span><span class="hl std">,</span><span class="hl num">237</span><span class="hl std">,</span><span class="hl num">192</span><span class="hl std">,</span><span class="hl num">227</span><span class="hl std">,</span><span class="hl num">293</span><span class="hl std">,</span><span class="hl num">263</span><span class="hl std">,</span><span class="hl num">224</span><span class="hl std">,</span><span class="hl num">223</span><span class="hl std">,</span><span class="hl num">249</span><span class="hl std">,</span><span class="hl num">223</span><span class="hl std">,</span><span class="hl num">271</span><span class="hl std">),</span>
+                          <span class="hl kwc">Week</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">2</span><span class="hl std">)</span>
+                         <span class="hl std">)</span>
+   <span class="hl kwd">kable</span><span class="hl std">(rawBrand)</span>
+</pre></div>
+<table>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> Edinburgh </th>
+   <th style="text-align:right;"> Glasgow </th>
+   <th style="text-align:right;"> Week </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 332 </td>
+   <td style="text-align:right;"> 381 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 258 </td>
+   <td style="text-align:right;"> 252 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 219 </td>
+   <td style="text-align:right;"> 281 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 240 </td>
+   <td style="text-align:right;"> 243 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 183 </td>
+   <td style="text-align:right;"> 237 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 162 </td>
+   <td style="text-align:right;"> 192 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 241 </td>
+   <td style="text-align:right;"> 227 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 209 </td>
+   <td style="text-align:right;"> 293 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 209 </td>
+   <td style="text-align:right;"> 263 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 214 </td>
+   <td style="text-align:right;"> 224 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 200 </td>
+   <td style="text-align:right;"> 223 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 202 </td>
+   <td style="text-align:right;"> 249 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 178 </td>
+   <td style="text-align:right;"> 223 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 221 </td>
+   <td style="text-align:right;"> 271 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+</tbody>
+</table>
+
+</div></div>
+<div class="chunk" id="unnamed-chunk-33"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl kwd">library</span><span class="hl std">(reshape2)</span>
+   <span class="hl std">rawBrand</span><span class="hl opt">$</span><span class="hl std">day</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.integer</span><span class="hl std">(</span><span class="hl kwd">rownames</span><span class="hl std">(rawBrand))</span>
+   <span class="hl std">tall</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">melt</span><span class="hl std">(rawBrand,</span><span class="hl kwc">id.vars</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;day&quot;</span><span class="hl std">,</span><span class="hl str">&quot;Week&quot;</span><span class="hl std">))</span>
+   <span class="hl kwd">ggplot</span><span class="hl std">(tall,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=day,</span><span class="hl kwc">y</span><span class="hl std">=value,</span><span class="hl kwc">color</span><span class="hl std">=variable))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_line</span><span class="hl std">()</span> <span class="hl opt">+</span>
+           <span class="hl kwd">theme_minimal</span><span class="hl std">()</span> <span class="hl opt">+</span>
+           <span class="hl kwd">scale_color_discrete</span><span class="hl std">(</span><span class="hl kwc">name</span><span class="hl std">=</span><span class="hl str">&quot;City&quot;</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-33-1.png" title="plot of chunk unnamed-chunk-33" alt="plot of chunk unnamed-chunk-33" class="plot" /></div></div>
+      It looks like there is a change is volume across the two weeks the effects
+      both cities. We will need to take this into account in our analysis
+      otherwise our conclusions might be because there was lower volume in week
+      two which has nothing to do with the experimental changes made.
+                 </p>
+<div class="chunk" id="unnamed-chunk-34"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">model</span> <span class="hl kwb">&lt;-</span> <span class="hl str">[1489 chars quoted with '&quot;']</span>
+
+<span class="hl std">d</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwc">N</span><span class="hl std">=</span><span class="hl num">14</span><span class="hl std">,</span>
+          <span class="hl kwc">geo1</span> <span class="hl std">= rawBrand</span><span class="hl opt">$</span><span class="hl std">Edinburgh</span><span class="hl opt">/</span><span class="hl kwd">max</span><span class="hl std">(rawBrand</span><span class="hl opt">$</span><span class="hl std">Edinburgh,rawBrand</span><span class="hl opt">$</span><span class="hl std">Glasgow),</span>
+          <span class="hl kwc">geo2</span> <span class="hl std">= rawBrand</span><span class="hl opt">$</span><span class="hl std">Glasgow</span><span class="hl opt">/</span><span class="hl kwd">max</span><span class="hl std">(rawBrand</span><span class="hl opt">$</span><span class="hl std">Edinburgh,rawBrand</span><span class="hl opt">$</span><span class="hl std">Glasgow),</span>
+          <span class="hl kwc">status</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">)</span>
+         <span class="hl std">)</span>
+<span class="hl std">brandupliftfit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">)</span>
+</pre></div>
+</div></div>
+    <p>
+      The parameter of interest is `uplift`. Let us see what that looks like:
+    </p>
+<div class="chunk" id="unnamed-chunk-35"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(brandupliftfit)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;extract&quot;
+</pre></div>
+<div class="source"><pre class="knitr r">   <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(samples)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(samples): object 'samples' not found
+</pre></div>
+<div class="source"><pre class="knitr r">   <span class="hl kwd">ggplot</span><span class="hl std">(samples,</span><span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">=uplift))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_histogram</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">theme_minimal</span><span class="hl std">()</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in ggplot(samples, aes(x = uplift)): object 'samples' not found
+</pre></div>
+</div></div>
+    <p>
+      The percentage uplift looks like it is somewhere between 0% and 20% (this
+      is not good!)
+    </p>
+<div class="chunk" id="unnamed-chunk-36"><div class="rcode"><div class="source"><pre class="knitr r">  <span class="hl kwd">kable</span><span class="hl std">(</span><span class="hl kwd">quantile</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">uplift,</span><span class="hl kwc">probs</span><span class="hl std">=</span><span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl kwc">from</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span><span class="hl kwc">to</span><span class="hl std">=</span><span class="hl num">1</span><span class="hl std">,</span><span class="hl kwc">by</span><span class="hl std">=</span><span class="hl num">0.1</span><span class="hl std">)))</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in quantile(samples$uplift, probs = seq(from = 0, to = 1, by = 0.1)): object 'samples' not found
+</pre></div>
+</div></div>
+    <p>The median is about 6%</p>
+    <p>
+      This is a bit different from asking if the answer is statistically
+      significant. To do this you need to define a null hypothesis and this is
+      hard to do in a good way here.
+    </p>
+    <p>
+      Instead we can ask things like "how likely is it that the uplift is
+      greater than 0%?" (about 80%) or "how likely is it that the uplift is
+      greater than 20%?" (less than 10%). These questions correspond more
+      closely with the types of things that businesses usually ask.
+    </p>
+    <h3>Ad Testing</h3>
+    <p>
+      There are plenty of online tools for telling you whether to stop or
+      continue an ad test. Let's ignore flaws in the experiment setup here and
+      look at another problem that responds well to this angle of attack.
+    </p>
+    <p>
+      One problem that sometimes happens with ad testing is that people want to
+      test multiple ads at once. <a href="https://xkcd.com/882/">XKCD</a>
+      illustrates this issue quite nicely. The common way to solve this is to
+      use
+      the <a href="https://en.wikipedia.org/wiki/Bonferroni_correction">Bonferroni
+        correction</a> but this is an inelegant fudge (in my humble opinion).
+    </p>
+    <p>
+      Using MCMC methods we can directly calculate the probability that a
+      particular ad is the best out of a group. [NB. I think it is also possible
+      to do this analytically].
+    </p>
+<div class="chunk" id="unnamed-chunk-37"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">model</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;data {
+            int&lt;lower=2&gt; N; // number of adverts
+            int&lt;lower=0&gt; clicks[N]; // number of clicks
+            int&lt;lower=0&gt; impressions[N]; // number of impressions
+          }
+          parameters {
+            real&lt;lower=0,upper=1&gt; ctr[N]; // ctr for each advert
+          }
+          model {
+            clicks ~ binomial(impressions,ctr);
+          }&quot;</span>
+
+<span class="hl std">d</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwc">N</span><span class="hl std">=</span><span class="hl num">3</span><span class="hl std">,</span>
+          <span class="hl kwc">clicks</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">5</span><span class="hl std">,</span><span class="hl num">15</span><span class="hl std">,</span><span class="hl num">0</span><span class="hl std">),</span>
+          <span class="hl kwc">impressions</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">100</span><span class="hl std">,</span><span class="hl num">100</span><span class="hl std">,</span><span class="hl num">20</span><span class="hl std">)</span>
+          <span class="hl std">)</span>
+
+<span class="hl std">adsfit</span> <span class="hl kwb">&lt;-</span>  <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl kwc">seed</span><span class="hl std">=</span><span class="hl num">152</span><span class="hl std">)</span>
+</pre></div>
+</div></div>
+   <p>Maybe it would be better to use a transformed parameter to calculate the
+   percentage chance that ad 1 is best directly within stan. But it is easy
+     enough to do this afterwards in R:
+   </p>
+<div class="chunk" id="unnamed-chunk-38"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(adsfit)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): could not find function &quot;extract&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">ctr</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">as.data.frame</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">ctr)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in as.data.frame(samples$ctr): object 'samples' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V1best</span> <span class="hl kwb">&lt;-</span> <span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V1</span> <span class="hl opt">&gt;</span> <span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V2)</span> <span class="hl opt">&amp;</span> <span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V1</span> <span class="hl opt">&gt;</span> <span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V3)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): object 'ctr' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V2best</span> <span class="hl kwb">&lt;-</span> <span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V2</span> <span class="hl opt">&gt;</span> <span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V1)</span> <span class="hl opt">&amp;</span> <span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V2</span> <span class="hl opt">&gt;</span> <span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V3)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): object 'ctr' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V3best</span> <span class="hl kwb">&lt;-</span> <span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V3</span> <span class="hl opt">&gt;</span> <span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V1)</span> <span class="hl opt">&amp;</span> <span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V3</span> <span class="hl opt">&gt;</span> <span class="hl std">ctr</span><span class="hl opt">$</span><span class="hl std">V2)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in eval(expr, envir, enclos): object 'ctr' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">res</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Ad1</span><span class="hl std">=</span><span class="hl kwd">sum</span><span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V1best)</span><span class="hl opt">/</span><span class="hl kwd">nrow</span><span class="hl std">(ctr),</span>
+                  <span class="hl kwc">Ad2</span><span class="hl std">=</span><span class="hl kwd">sum</span><span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V2best)</span><span class="hl opt">/</span><span class="hl kwd">nrow</span><span class="hl std">(ctr),</span>
+                  <span class="hl kwc">Ad3</span><span class="hl std">=</span><span class="hl kwd">sum</span><span class="hl std">(ctr</span><span class="hl opt">$</span><span class="hl std">V3best)</span><span class="hl opt">/</span><span class="hl kwd">nrow</span><span class="hl std">(ctr)</span>
+                  <span class="hl std">)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in data.frame(Ad1 = sum(ctr$V1best)/nrow(ctr), Ad2 = sum(ctr$V2best)/nrow(ctr), : object 'ctr' not found
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">kable</span><span class="hl std">(res)</span>
+</pre></div>
+<div class="error"><pre class="knitr r">## Error in inherits(x, &quot;list&quot;): object 'res' not found
+</pre></div>
+</div></div>
+   <p>
+     So ad 2 (15 clicks from 100 impressions) is 95% likely to be the best. (I
+     just made up the click/impression numbers - that the figure is 95% is pure
+     coincidence and nothing to do with common p value levels.
+   </p>
+    <p>
+      You can read more about this approach
+      in <a href="http://www.stat.columbia.edu/~gelman/research/published/multiple2f.pdf">Why
+      We (Usually) Don't Have to Worry About Multiple Comparisons</a> which also
+      talks about using another assumption in the model - that the true click
+      through rates of the adverts are likely to be similar.
+      </p>
+  </div>
+</body>

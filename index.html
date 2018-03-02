@@ -1,14 +1,71 @@
 ---
-title: Home
+title: Data Consultancy
 ---
 
-<h2>Welcome</h2>
+<div class="hero">
+    <p>Data Consultancy specialising in the intersection between data analysis, machine learning, digital analytics and online marketing.</p>
+    <h3>Get in touch</h3>
+    <form method="post" action="//formspree.io/richard.fergie+contact@gmail.com" class="horizontal">
+        <div class="row">
+            <div class="col c3">
+                <label>Name</label>
+                <input type="text" name="name" placeholder="Who are you?">
+            </div>
+            <div class="col c3">
+                <label>Email (so I can respond)</label>
+                <input type="text" name="email" placeholder="How do I reply?">
+            </div>
+            <div class="col c3">
+                <label>Message</label>
+                <textarea name="message" rows="1">
+                </textarea>
+            </div>
+            <div class="col c3">
+                <button type="submit" class="btn btn-sm btn-a">Send</button>
+            </div>
+        </div>
+   </form>
+</div>
 
-<p>Welcome to my blog!</p>
-
-<p>I've reproduced a list of recent posts here for your reading pleasure:</p>
-
-<h2>Posts</h2>
-$partial("templates/post-list.html")$
-
-<p>…or you can find more in the <a href="/archive.html">archives</a>.</p>
+<div class="row">
+    <div class="col c6">
+        <p>I always find it difficult to describe what I do; as a freelance consultant I'll do pretty much anything if the price is right.</p>
+        <p>Businesses <em>mostly</em> pay me for my data analysis skills, particularly with a focus on paid search marketing. I know more about data
+            science than most PPC experts and I know a lot more about PPC than most data scientists.</p>
+        <h3>Example Projects</h3>
+        <ul>
+            <li>Using machine learning to identify different customer segments for a large online publisher.</li>
+            <li>Setting up experiments to rigourously measure the incremental uplift of brand search.</li>
+            <li>Helping agencies by writing AdWords scripts to automate parts of the measure &rarr; learn &rarr; apply cycle.</li>
+            <li>Modelling the true incremental value of marketing spend for a luxury hotel.</li>
+            <li>Building custom analysis tools and dashboards for a large manufacturer.</li>
+            <li>Personalised training sessions on machine learning, the R programming language and PPC strategy <small>(not all at the same time!)</small></li>
+        </ul>
+        <p>You might be wondering why I don't list PPC account management here. My account management services are relatively expensive for a solo
+            practicioner which means they are only suitable for quite a small niche; for this kind of relationship to work well for you, the business
+            needs to be big enough that I can make enough difference to give you a good return on my fee yet small enough that I am able to manage the
+            account by myself.</p>
+        <p>If you think this might be you, then we should definitely chat.</p>
+    </div>
+    <div class="col c6">
+        <h3>Greatest Hits</h3>
+        <p>A curated selection of the best content on the site:</p>
+        <div class="greatest_hit">
+        <h4><a href="/r-for-web-analysts/">R for Web Analysts</a></h4>
+        <p>A soup to nuts guide for getting started with the R programming language and Google Analytics.</p>
+        <p>I provide customised training for organisations to help develop the contents of this document towards a particular business need.</p>
+        </div>
+        <div class="greatest_hit">
+        <h4><a href="/multi-level-bidding/">Multi Level Bidding</a></h4>
+        <p>One of the challenges of biddable media is setting the correct bid based on not very much data.</p>
+        <p>This page demonstrates one approach to helping with this which uses the account structure to "pool" data together which gives a better estimate of the conversion rate.</p>
+        <p>The hierarchical model approach can also be used in other ways.</p>
+        </div>
+        <div class="greatest_hit">
+        <h4><a href="/lines-of-best-fit/">Lines of Best Fit</a></h4>
+        <p>A very simple introduction to adapting machine learning models for custom use</p>
+        <p>Another example of how this can be useful is my post on <a href="/different-test-models/">different test models</a></p>
+        </div>
+        <a href="/blog/">Read more</a> in the blog archive.
+    </div>
+</div>
