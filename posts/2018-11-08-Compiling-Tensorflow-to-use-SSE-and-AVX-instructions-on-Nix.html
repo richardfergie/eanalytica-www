@@ -1,0 +1,94 @@
+---
+title: Compiling Tensorflow to use SSE and AVX instructions on NixOS
+---
+<p>
+    When you install Tensorflow in the normal way you will often get a warning
+    message like <em>"The TensorFlow library wasn't compiled to use SSE4.2
+    instructions, but these are available on your machine and could speed up CPU
+    computations"</em> or something like that.
+</p>
+<p>
+    This tells you that the Tensorflow computations could be optimised further
+    but these optimisations aren't used by default because they are only
+    available on some CPU architectures.
+</p>
+<p>
+    Tensorflow has a guide on how to <a
+                                         href="https://www.tensorflow.org/install/source">install
+    from source</a> with these features enabled but the process is tedious and
+    it is not the Nix way.
+</p>
+<p>
+    If you look at the <a
+                           href="https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/python-modules/tensorflow/default.nix#L92:L95">Nix
+    derivation for tensorflow</a> you can see options for enabling SSE4.2, AVX2
+    and FMA support; the question is "how do I enable these in my own
+    decleration?"
+</p>
+<p>
+    Here is an extract from the old version of my nix file:
+    <code><pre>
+pythonPackageList = python-packages: with python-packages; [
+    pandas
+    scikitlearn
+    Keras
+    tensorflow
+    numpy
+    h5py
+    scipy
+    jupyter
+    conda
+    statsmodels
+    matplotlib
+    seaborn
+    nltk
+    beautifulsoup4
+    flask
+    psycopg2
+    ];
+  python3packages = pkgs.python3.withPackages pythonPackageList;
+    </pre></code>
+</p>
+<p>
+    All we need to do is change the <code>tensorflow</code> variable to be what
+    we want it to be:
+    <code><pre>
+ python3PackageOverrides = pkgs.python3Packages.override (oldAttrs:
+     { overrides = self: super: {
+         tensorflow = super.tensorflow.override {
+           sse42Support = true;
+           avx2Support = true;
+           fmaSupport = true;
+           };
+         };
+       });
+
+  pythonPackageList = python-packages: with python-packages; [
+    pandas
+    scikitlearn
+    Keras
+    python3PackageOverrides.tensorflow
+    numpy
+    h5py
+    scipy
+    jupyter
+    conda
+    statsmodels
+    matplotlib
+    seaborn
+    nltk
+    beautifulsoup4
+    flask
+    psycopg2
+    ];
+  python3packages = pkgs.python3.withPackages pythonPackageList;
+    </pre></code>
+</p>
+<p>
+    Simple! <small>When you know how...</small>
+</p>
+<p>
+    I don't notice significant speedups with this change, but it does mean I
+    don't get the warning message any more. Disabling the warning messages would
+    probably have been easier.
+</p>
