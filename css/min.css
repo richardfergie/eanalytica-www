@@ -230,8 +230,13 @@ input[type=text] {
 }
 
 .col {
-    float: left
+    float: left;
+    margin: 0 1%;
 }
+.col-close {
+    float: left;
+}
+
 
 .table,
 .c12 {
@@ -259,7 +264,7 @@ input[type=text] {
 }
 
 .c6 {
-    width: 50%
+    width: 48%
 }
 
 .c5 {
