@@ -5,5 +5,12 @@ jobs:
       - image: fpco/stack-build
     steps:
       - checkout
+      - restore_cache:
+          keys: stack
       - run: stack setup
       - run: stack build
+      - save_cache:
+          key: stack
+          paths:
+            - .stack-work
+            - ~/.stack
