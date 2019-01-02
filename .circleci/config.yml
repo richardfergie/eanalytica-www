@@ -4,6 +4,7 @@ jobs:
     docker:
       - image: fpco/stack-build
     steps:
+      - run: apt-get update && apt-get -qq -y install awscli
       - checkout
       - restore_cache:
           keys: stack
@@ -20,3 +21,4 @@ jobs:
       - save_cache:
           key: site
           paths: _site
+      - run: aws s3 sync _site s3://com.eanalytica.www2/
