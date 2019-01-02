@@ -63,26 +63,28 @@
   font-weight: bold;
 }
 </style>
-
-  <meta charset="utf-8">
-  <title>Different Split Testing Models</title>
-  <meta name="description" content="">
-  <meta name="author" content="">
-
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
-
-  <link rel="stylesheet" href="/css/normalize.css">
-  <link rel="stylesheet" href="/css/skeleton.css">
-  <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
-  <script src="/js/r-tutorial.js"></script>
-  <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
-
+  <link rel="stylesheet" type="text/css" href="/css/min.css" />
+  <title>Different Split Testing Models</title>
 </head>
 <body>
-
   <div class="container">
+      <div class="logo">
+        E-Analytica
+      </div>
+    </div>
+    <nav class="nav" tabindex="-1" >
+      <div class="container">
+        <a href="/" >Home</a>
+        <a href="/about/" >About</a>
+        <a href="/services/" >Services</a>
+        <a href="/blog/" >Archive</a>
+        <a href="/contact/" >Contact</a>
+      </div>
+    </nav>
+
+  <div class="container narrow">
   <h2>It started with a tweet...</h2>
   <blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">fwiw, that&#39;s the wrong thing to measure there. If they get one big donator falling into either side of the test it badly skews the numbers.</p>&mdash; dan barker (@danbarker) <a href="https://twitter.com/danbarker/status/834012788397842437">February 21, 2017</a></blockquote>
   <p>Dan points out that because some donations are a lot bigger than others the results of an A/B test can be skewed if one very big donation coincidentally falls into one test variation.</p>
@@ -180,18 +182,19 @@ model {
 
     <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl kwc">seed</span><span class="hl std">=</span><span class="hl num">152</span><span class="hl std">,</span><span class="hl kwc">refresh</span> <span class="hl std">=</span> <span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span>
 </pre></div>
+</div></div>
   <p>Finally, extract the statistic of interest out of the samples</p>
 <div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
     <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
 </pre></div>
-<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.73115
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.73795
 </pre></div>
 </div></div></div>
   <p>
     There is a 73% chance that the conversion rate for page 1 is better than page 2.</p>
 <div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">donation_mean1</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">donation_mean2</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
 </pre></div>
-<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.4732
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.4725
 </pre></div>
 </div></div></div>
   <p>And a 53% chance that page 2 generates more donations per visit than page 1.</p>
@@ -207,16 +210,16 @@ model {
     <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
     <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
 </pre></div>
-<div class='wrapoutput'>
-    <div class="output"><pre class="knitr r">## [1] 0.69605
-    </pre></div></div>
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.70045
+</pre></div>
+</div></div></div>
   <p>A 70% chance that page 1 has a better conversion rate than page 2 (this is expected - we've only added one extra conversion).</p>
 <div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r">    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">donation_mean1</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">donation_mean2</span><span class="hl opt">*</span><span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
 </pre></div>
-<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.099
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.0971
 </pre></div>
 </div></div></div>
-  <p>But page 2 is 99% more likely to generate more donation dollars per visit!</p>
+  <p>But page 2 is 90% more likely to generate more donation dollars per visit!</p>
   <p>This is exactly what Dan was talking about - the test result gets massively skewed by a single random donation.</p>
   <p>"Skewed" is a bit of a loaded word here, "changed" would be more neutral, but my intuition says that a single donation should not change the result this much.</p>
   <p>As I've said before, when the model doesn't agree with intuition one of the following things must be going on:
@@ -295,18 +298,19 @@ model {
    }&quot;</span>
    <span class="hl std">fit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stan</span><span class="hl std">(</span><span class="hl kwc">model_code</span><span class="hl std">=model,</span><span class="hl kwc">data</span><span class="hl std">=d,</span><span class="hl kwc">iter</span><span class="hl std">=</span><span class="hl num">10000</span><span class="hl std">,</span><span class="hl kwc">chains</span><span class="hl std">=</span><span class="hl num">4</span><span class="hl std">,</span><span class="hl kwc">seed</span><span class="hl std">=</span><span class="hl num">152</span><span class="hl std">,</span> <span class="hl kwc">refresh</span> <span class="hl std">=</span> <span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span>
 </pre></div>
-<div class="source"><pre class="knitr r">   <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
+</div></div>
+<div class="chunk" id="unnamed-chunk-10"><div class="rcode"><div class="source"><pre class="knitr r">   <span class="hl std">samples</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">extract</span><span class="hl std">(fit)</span>
    <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">convr1</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">convr2)</span><span class="hl opt">/</span><span class="hl num">20000</span>
 </pre></div>
-<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.6975
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.6973
 </pre></div>
 </div><div class="source"><pre class="knitr r">   <span class="hl kwd">sum</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape1</span><span class="hl opt">*</span><span class="hl num">0.1</span><span class="hl opt">/</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape1</span><span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span> <span class="hl opt">&gt;</span> <span class="hl std">samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape2</span><span class="hl opt">*</span><span class="hl num">0.1</span><span class="hl opt">/</span><span class="hl std">(samples</span><span class="hl opt">$</span><span class="hl std">pareto_shape2</span><span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">))</span><span class="hl opt">/</span><span class="hl num">20000</span>
 </pre></div>
-<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.3955
+<div class='wrapoutput'><div class="output"><pre class="knitr r">## [1] 0.4013
 </pre></div>
 </div></div></div>
   <p>The conversion rate stuff doesn't change, there is still a 70% chance that page 1 has a better conversion rate than page 2</p>
-  <p>But the donated dollars per visit has changed a lot. There is a 70% chance that page 2 is better than page 1 (compared to 99% on the previous model).</p>
+  <p>But the donated dollars per visit has changed a lot. There is a 60% chance that page 2 is better than page 1 (compared to 90% on the previous model).</p>
   <p>This seems more reasonable to me but in real life there would still be more work to do: I picked the pareto distribution because it is a heavy tailed distribution that I've heard of. It might not be the best fit for the real life data - if the tail is too fat this would cause us to reject pages that are actually better and if the tail is too thin we will declare winners that aren't actually any better.</p>
   </div>
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>

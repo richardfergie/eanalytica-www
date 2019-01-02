@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="/css/min.css" />
+  <title>Different Split Testing Models</title>
+</head>
+<body>
+  <div class="container">
+      <div class="logo">
+        E-Analytica
+      </div>
+    </div>
+    <nav class="nav" tabindex="-1" >
+      <div class="container">
+        <a href="/" >Home</a>
+        <a href="/about/" >About</a>
+        <a href="/services/" >Services</a>
+        <a href="/blog/" >Archive</a>
+        <a href="/contact/" >Contact</a>
+      </div>
+    </nav>
+  <!--begin.rcode echo=FALSE
+      ho0 <- knit_hooks$get('output')
+      knit_hooks$set(
+         output = function(x, options) {
+            paste0("<div class='wrapoutput'>", ho0(x,options), "</div>")
+    }
+  )
+  cat <- function(...) return(invisible(NULL))
+      end.rcode -->
+  <div class="container narrow">
+  <h2>It started with a tweet...</h2>
+  <blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">fwiw, that&#39;s the wrong thing to measure there. If they get one big donator falling into either side of the test it badly skews the numbers.</p>&mdash; dan barker (@danbarker) <a href="https://twitter.com/danbarker/status/834012788397842437">February 21, 2017</a></blockquote>
+  <p>Dan points out that because some donations are a lot bigger than others the results of an A/B test can be skewed if one very big donation coincidentally falls into one test variation.</p>
+  <p>This is a very fair point, but surely there should be a way to statistically check whether the difference is due to random chance or better performance of a page.</p>
+  <p>There are many ways this could be modelled; here is my quick attempt to show how it could work on real data.</p>
+  <h2>First attempt</h2>
+  <p>To start with I'm going to try to demonstrate what Dan is talking about. I'll make some donation data for two identical pages (i.e. an A/A test) and show what kind of result this gives.</p>
+  <p>Then I'll add a single large donation to one page; you will see how suddenly a naive approach then concludes that this page is better.</p>
+  <!--begin.rcode message=FALSE
+      set.seed(2413)
+      conversion_rate <- 0.05
+      page1 <- rbinom(1000,1,conversion_rate)*rnorm(1000,mean=10,sd=3)
+      page2 <- rbinom(1000,1,conversion_rate)*rnorm(1000,mean=10,sd=3)
+      df <- data.frame(Page1=mean(page1),Page2=mean(page2))
+      kable(df)
+      end.rcode-->
+  <p>By random chance, the donations per visit for page 2 is slightly higher than for page 1</p>
+  <!--begin.rcode message=FALSE
+    df <- data.frame(Page1=max(page1),Page2=max(page2))
+    kable(df)
+    end.rcode-->
+  <p>But the maximum donation size isn't that different</p>
+  <p>To see the chance that one page is better than the other I will use the following Stan model:</p>
+  <pre>
+data {
+  int<lower=0> N1;
+  int<lower=0> N2;
+  int<lower=0,upper=1> donated1[N1];
+  int<lower=0,upper=1> donated2[N2];
+  real<lower=0> donation_amount1[N1];
+  real<lower=0> donation_amount2[N2];
+}
+parameters {
+  real<lower=0,upper=1> convr1;
+  real<lower=0,upper=1> convr2;
+  real<lower=0> donation_mean1;
+  real<lower=0> donation_mean2;
+  real<lower=0> donation_sd1;
+  real<lower=0> donation_sd2;
+}
+model {
+  for (i in 1:N1) {
+    donated1[i] ~ bernoulli(convr1);
+    if (donated1[i]==1) {
+      donation_amount1[i] ~ normal(donation_mean1, donation_sd1);
+    }
+  }
+  for (i in 1:N2) {
+    donated2[i] ~ bernoulli(convr2);
+    if (donated2[i]==1) {
+      donation_amount2[i] ~ normal(donation_mean2, donation_sd2);
+    }
+  }
+}
+  </pre>
+  <p>And fit it using the generated data</p>
+  <!--begin.rcode message=FALSE, warning=FALSE, cache=TRUE, results='hide'
+      library(rstan)
+      rstan_options(auto_write = TRUE)
+      options(mc.cores = parallel::detectCores())
+      model <- "data {
+                  int<lower=0> N1;
+                  int<lower=0> N2;
+                  int<lower=0,upper=1> donated1[N1];
+                  int<lower=0,upper=1> donated2[N2];
+                  real<lower=0> donation_amount1[N1];
+                  real<lower=0> donation_amount2[N2];
+                }
+
+                parameters {
+                  real<lower=0,upper=1> convr1;
+                  real<lower=0,upper=1> convr2;
+                  real<lower=0> donation_mean1;
+                  real<lower=0> donation_mean2;
+                  real<lower=0> donation_sd1;
+                  real<lower=0> donation_sd2;
+                }
+                model {
+                  for (i in 1:N1) {
+                    donated1[i] ~ bernoulli(convr1);
+                    if (donated1[i]==1) {
+                      donation_amount1[i] ~ normal(donation_mean1, donation_sd1);
+                    }
+                  }
+                  for (i in 1:N2) {
+                    donated2[i] ~ bernoulli(convr2);
+                    if (donated2[i]==1) {
+                      donation_amount2[i] ~ normal(donation_mean2, donation_sd2);
+                    }
+                  }
+                }"
+
+      d = list(N1 = 1000, N2 = 1000,
+               donation_amount1 = page1, donation_amount2 = page2,
+               donated1 = as.integer(page1 > 0), donated2 = as.integer(page2 > 0))
+
+      fit <- stan(model_code=model,data=d,iter=10000,chains=4,seed=152,refresh = -1)
+      end.rcode-->
+  <p>Finally, extract the statistic of interest out of the samples</p>
+  <!--begin.rcode
+      samples <- extract(fit)
+      sum(samples$convr1 > samples$convr2)/20000
+      end.rcode-->
+  <p>
+    There is a 73% chance that the conversion rate for page 1 is better than page 2.</p>
+  <!--begin.rcode
+      sum(samples$donation_mean1*samples$convr1 > samples$donation_mean2*samples$convr2)/20000
+      end.rcode-->
+  <p>And a 53% chance that page 2 generates more donations per visit than page 1.</p>
+  <p>Most people either wouldn't take any action off these numbers or would declare the challenger to have failed with the incumbent page being the winner</p>
+  <p>Now add a large donation to page 2 and redo the computation</p>
+  <!--begin.rcode message=FALSE, warning=FALSE
+      page2 <- c(1000,page2)
+
+      d = list(N1 = 1000, N2 = 1001,
+         donation_amount1 = page1, donation_amount2 = page2,
+         donated1 = as.integer(page1 > 0), donated2 = as.integer(page2 > 0))
+
+      fit <- stan(model_code=model,data=d,iter=10000,chains=4,seed=152, refresh = -1)
+      samples <- extract(fit)
+      sum(samples$convr1 > samples$convr2)/20000
+      end.rcode-->
+  <p>A 70% chance that page 1 has a better conversion rate than page 2 (this is expected - we've only added one extra conversion).</p>
+  <!--begin.rcode
+      sum(samples$donation_mean1*samples$convr1 > samples$donation_mean2*samples$convr2)/20000
+      end.rcode-->
+  <p>But page 2 is 90% more likely to generate more donation dollars per visit!</p>
+  <p>This is exactly what Dan was talking about - the test result gets massively skewed by a single random donation.</p>
+  <p>"Skewed" is a bit of a loaded word here, "changed" would be more neutral, but my intuition says that a single donation should not change the result this much.</p>
+  <p>As I've said before, when the model doesn't agree with intuition one of the following things must be going on:
+    <ol>
+      <li>My intuition is wrong</li>
+      <li>The model is wrong</li>
+      <li>All of the above</li>
+    </ol>
+  </p>
+  <p>For the purposes of this discussion, let's go with option 2 and try to find another model.</p>
+  <h2>Second attempt</h2>
+  <p>Our first model was that, for each page, users convert with probability <code>convr</code> and then those that convert make a donation with an amount drawn from a normal distribution having mean <code>donation_mean</code> and standard deviation <code>donation_sd</code>.
+  </p>
+  <p>The model fails because the donation amounts are not normally distributed; there are a lot of small donations and a small number of much larger donations. The larger donations distort our estimate of the mean even though there is only a small number of them.</p>
+  <p>By picking a distribution with heavier tails this problem can be reduced.</p>
+  <p>Change the model to the following:</p>
+  <pre>
+data {
+  int<lower=0> N1;
+  int<lower=0> N2;
+  int<lower=0,upper=1> donated1[N1];
+  int<lower=0,upper=1> donated2[N2];
+  real<lower=0> donation_amount1[N1];
+  real<lower=0> donation_amount2[N2];
+}
+parameters {
+  real<lower=0,upper=1> convr1;
+  real<lower=0,upper=1> convr2;
+  real<lower=0> pareto_shape1;
+  real<lower=0> pareto_shape2;
+}
+model {
+  for (i in 1:N1) {
+    donated1[i] ~ bernoulli(convr1);
+    if (donated1[i]==1) {
+      donation_amount1[i] ~ pareto(0.1,pareto_shape1);
+    }
+  }
+  for (i in 1:N2) {
+    donated2[i] ~ bernoulli(convr2);
+    if (donated2[i]==1) {
+      donation_amount2[i] ~ pareto(0.1,pareto_shape2);
+    }
+  }
+}
+  </pre>
+  <p>Instead of a normal distribution, this model assumes that the donation amounts come from a pareto distribution with minimum <code>0.1</code> and shape <code>pareto_shape</code></p>
+  <p>Fit the model on the data:</p>
+  <!--begin.rcode message=FALSE, warning=FALSE, quietly=TRUE, cache=TRUE, results='hide'
+      model <- "data {
+        int<lower=0> N1;
+        int<lower=0> N2;
+        int<lower=0,upper=1> donated1[N1];
+        int<lower=0,upper=1> donated2[N2];
+        real<lower=0> donation_amount1[N1];
+        real<lower=0> donation_amount2[N2];
+      }
+      parameters {
+        real<lower=0,upper=1> convr1;
+        real<lower=0,upper=1> convr2;
+        real<lower=0> pareto_shape1;
+        real<lower=0> pareto_shape2;
+      }
+      model {
+        for (i in 1:N1) {
+          donated1[i] ~ bernoulli(convr1);
+          if (donated1[i]==1) {
+            donation_amount1[i] ~ pareto(0.1,pareto_shape1);
+          }
+        }
+        for (i in 1:N2) {
+          donated2[i] ~ bernoulli(convr2);
+          if (donated2[i]==1) {
+            donation_amount2[i] ~ pareto(0.1,pareto_shape2);
+          }
+        }
+     }"
+     fit <- stan(model_code=model,data=d,iter=10000,chains=4,seed=152, refresh = -1)
+     end.rcode-->
+  <!--begin.rcode
+     samples <- extract(fit)
+     sum(samples$convr1 > samples$convr2)/20000
+     sum(samples$pareto_shape1*0.1/(samples$pareto_shape1-1) > samples$pareto_shape2*0.1/(samples$pareto_shape2-1))/20000
+     end.rcode-->
+  <p>The conversion rate stuff doesn't change, there is still a 70% chance that page 1 has a better conversion rate than page 2</p>
+  <p>But the donated dollars per visit has changed a lot. There is a 60% chance that page 2 is better than page 1 (compared to 90% on the previous model).</p>
+  <p>This seems more reasonable to me but in real life there would still be more work to do: I picked the pareto distribution because it is a heavy tailed distribution that I've heard of. It might not be the best fit for the real life data - if the tail is too fat this would cause us to reject pages that are actually better and if the tail is too thin we will declare winners that aren't actually any better.</p>
+  </div>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
