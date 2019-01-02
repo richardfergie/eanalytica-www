@@ -1,0 +1,3 @@
+[submodule "R/r-for-web-analysts"]
+	path = R/r-for-web-analysts
+	url = https://github.com/richardfergie/r-for-web-analysts
