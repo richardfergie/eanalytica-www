@@ -1,0 +1,54 @@
+---
+title: Hosting a Hakyll website on AWS S3 with circleci for continuous delivery
+---
+<p>
+    This site uses the static site generator <a href="https://jaspervdj.be/hakyll/">Hakyll</a>.
+    Hakyll is a bit of an unusual choice here (note to self: future blog post) which means that
+    static site generator services like Netlify won't run the generation process for me. They
+    can host the pages, but I'd have to run the script which generates the HTML myself.
+</p>
+<p>
+    This is fine on my own computer, but I'd like to be able to add posts from places or machines
+    where I don't have Hakyll installed. I use <a href="https://circleci.com/">circleci</a> to
+    build the site and then Amazon S3 to host the pages.
+</p>
+<p>
+    circleci will automatically run whenever a commit is made to the <a href="https://github.com/richardfergie/eanalytica-www">repository for this site</a> and then upload the results to Amazon where
+    people like you can see them.
+</p>
+<p>
+    Here is the circleci build script (see github for the <a href="https://github.com/richardfergie/eanalytica-www/blob/master/.circleci/config.yml">latest version</a>)
+    <code><pre>
+version: 2
+jobs:
+  build:
+    docker:
+      - image: fpco/stack-build
+    steps:
+      - run: apt-get update && apt-get -qq -y install awscli
+      - checkout
+      - restore_cache:
+          keys: stack
+      - run: stack setup
+      - run: stack install
+      - save_cache:
+          key: stack
+          paths:
+            - .stack-work
+            - ~/.stack
+      - restore_cache:
+          keys: site
+      - run: ~/.local/bin/eanalytica-www build
+      - save_cache:
+          key: site
+          paths: _site
+      - run: aws s3 sync _site s3://com.eanalytica.www2/
+</pre></code>
+</p>
+<p>
+    It uses the <code>fpco/stack-build</code> docker image so that the haskell build tools are
+    installed. The stack working directories are cached to decrease build times as is the previous
+    version of the site - if the site was very big this would also improve the build time, but for
+    my little blog it doesn't make much difference. I still need to figure out how to cache the
+    result of installing awscli on line 7.
+</p>
