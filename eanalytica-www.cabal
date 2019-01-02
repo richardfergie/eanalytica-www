@@ -2,10 +2,8 @@ name:                eanalytica-www
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/eanalytica-www#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Author name here
+homepage:            https://github.com/richardfergie/eanalytica-www
+author:              Richard Fergie
 maintainer:          example@example.com
 copyright:           2017 Author name here
 category:            Web
