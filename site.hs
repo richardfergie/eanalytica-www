@@ -22,6 +22,7 @@ blogRoute  =
       `composeRoutes` gsubRoute ".markdown" (const "/index.html")
       `composeRoutes` gsubRoute ".html" (const "/index.html")
       `composeRoutes` gsubRoute ".lhs" (const "/index.html")
+      `composeRoutes` gsubRoute ".org" (const "/index.html")
 
 slashUrlsCompiler :: Item String -> Compiler (Item String)
 slashUrlsCompiler item = do
