@@ -1,0 +1,47 @@
+---
+title: Notes on Google Analytics Dynamic Remarketing
+---
+#+OPTIONS: ^:{}
+I've been debugging a few [[https://support.google.com/analytics/answer/3455585?hl=en][Dynamic Remarketing]] issues for clients lately. Here
+are a few thoughts on what I've learned.
+
+NB: This refers to Google Analytics Dynamic Remarketing where audiences are
+setup and defined in Google Analytics. It is not the same as AdWords Dynamic
+Remarketing even though the purpose is very similar.
+
+I've only worked on retail clients in this area so this post skews towards their
+concerns/problems.
+
++ When you tag your site for Dynamic Remarketing you are essentially providing
+  hints for Google's machine learning system which then targets adverts based on
+  what they think the user wants and what they think you'll pay the most for.
++ The most common error I see is people using a different product ID
+  for Dynamic Remarketing than what is in the Merchant Centre feed. The product
+  ID you send in the `ecom_prodid` dimension *must* match one of the following
+  Merchant Centre fields: id, item_group_id or c:drid
++ If the only product ID's you can send to Google Analytics do not match the
+  Merchant Centre id or item_group_id (e.g. you are using tag manager to pull
+  them out the DOM and the page doesn't contain the right fields) then add the
+  ID's to the c:drid column in Merchant Centre; you probably aren't using it for
+  anything else anyway.
++ The `ecom_pagetype` dimension must be one of home, category, product, cart or
+  purchase regardless of how you actually categorise pages on the site.
++ `ecomm_totalvalue` is meant to be the total value of products viewed on the
+  site. The documentation isn't clear if this is the total value during the
+  session so far or the total value for the current hit but every implementation
+  I've ever seen uses the latter.
++ A lot of people don't include ecom_totalvalue on things like category pages
+  where users might view a hundred products at once and have a huge total value.
+  My guess is that Google uses this signal to figure out how best to balance
+  showing a user ads for a category they are most likely to click on vs showing
+  a category where the user will spend the most money. So missing it out should
+  lead to worse performance, but I haven't seen much performance difference in
+  the wild.
++ You should definitely use ecom_totalvalue on product and checkout pages.
++ On category pages, if you can, pass the item_group_id rather than the id. This
+  better matches how a user browses - they haven't picked out a particular
+  variant on the category page so don't tell Google that they have.
++ The best thing to do on product pages is a bit ambiguous. If the user has
+  selected a particular colour/size then send this item id to Google Analytics.
+  If they haven't, you /could/ send the item_group_id but most sites don't; they
+  just send the item id for whatever is the default item on the page.
