@@ -7,11 +7,13 @@ jobs:
       - run: apt-get update && apt-get -qq -y install awscli
       - checkout
       - restore_cache:
-          keys: stack
+          keys:
+            - stack-{{ checksum "site.hs" }}-{{ checksum "eanalytica-www.cabal" }}-{{ checksum "stack.yaml" }}
+            - stack
       - run: stack setup
       - run: stack install
       - save_cache:
-          key: stack
+          key: stack-{{ checksum "site.hs" }}-{{ checksum "eanalytica-www.cabal" }}-{{ checksum "stack.yaml" }}
           paths:
             - .stack-work
             - ~/.stack
@@ -19,6 +21,6 @@ jobs:
           keys: site
       - run: ~/.local/bin/eanalytica-www build
       - save_cache:
-          key: site
+          key: site-{{ epoch }}
           paths: _site
       - run: aws s3 sync _site s3://com.eanalytica.www2/
