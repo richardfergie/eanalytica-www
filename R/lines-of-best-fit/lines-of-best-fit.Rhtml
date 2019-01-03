@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Lines of Best Fit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="/css/min.css" />
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({tex2jax: {
+          inlineMath: [['$','$'], ['\\(','\\)']],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
+      }});
+    </script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="/js/r-tutorial.js"></script>
+    <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        E-Analytica
+      </div>
+    </div>
+    <nav class="nav" tabindex="-1" >
+      <div class="container">
+        <a href="/" >Home</a>
+        <a href="/about/" >About</a>
+        <a href="/services/" >Services</a>
+        <a href="/blog/" >Archive</a>
+        <a href="/contact/" >Contact</a>
+      </div>
+    </nav>
+
+  <!--begin.rcode echo=FALSE
+      opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,fig.width=12,fig.height=8,upload.fun = image_uri)
+      set.seed(125124)
+      ho0 <- knit_hooks$get('output')
+
+      knit_hooks$set(
+         output = function(x, options) {
+            paste0("<div class='wrapoutput'>", ho0(x,options), "</div>")
+    }
+  )
+      end.rcode -->
+  <div class="container narrow">
+    <h1>Lines of Best Fit</h1>
+    <p>
+      What does it mean when you draw a line of best fit?
+    </p>
+    <p>
+      What techniques are available to make your lines better?
+    </p>
+    <p>
+      How do you decide between them?
+    </p>
+    <p>Last updated on <!--rinline format(Sys.time(), "%A %d %B %Y") --></p>
+    <h2>Introduction and Motivation</h2>
+    <p>
+      Machine learning is a deep and growing area. There is a huge range of
+      techniques and the possibilities and options can be overwhelming (and this
+      is getting worse). This makes it difficult to know where to start.
+    </p>
+    <p>
+      This course starts with an area which just about everyone will have some
+      familiarity with (drawing a line of best fit) and then dives more deeply
+      into it. As well as providing an introduction to the broader topic of
+      regression, this will also illustrate broader concepts that occur all the
+      time in machine learning.
+    </p>
+    <p>
+      Here is an overview of what will be covered:
+      <ol>
+        <li>Introduction <small>You are here</small></li>
+        <li>The usual way.
+          <ol>
+            <li>What is "best"?</li>
+            <li>What is a line?</li>
+          </ol>
+        </li>
+        <li>Likelihood methods
+          <ol>
+            <li>Equivalence with other methods</li>
+          </ol>
+        </li>
+        <li>Ridge and Lasso regression</li>
+      </ol>
+    </p>
+    <p>Code and examples are done in R, but it shouldn't be necessary to do all
+    your work in R. You can use Python or Excel (if your Excel-fu is good
+      enough).
+    </p>
+
+    <h2>The usual way</h2>
+    <p>Suppose you have the following data and what to plot a straight line of
+      best fit:</p>
+    <!--begin.rcode echo=TRUE
+      raw <- data.frame(x=c(1,2,3,4,5,6),
+                        y=c(4.06,3.264,16.376,15.638,14.076,16.571)
+                       )
+      kable(raw)
+             end.rcode-->
+    <!--begin.rcode echo=TRUE
+      library(ggplot2)
+      rawplot <- ggplot(raw,aes(x=x,y=y)) +
+         geom_point(size=5) +
+         xlim(c(0,7)) +
+         ylim(c(0,20)) +
+         theme_minimal()
+      rawplot
+    end.rcode-->
+    <p>How do you actually do this?</p>
+    <p>In real life, you use a built in function (`lm` in R or something else in
+    Excel) and you don't really worry too much about what is happening behind
+      the scenes.</p>
+    <!--begin.rcode echo=TRUE
+      fit <- lm(y~x,data=raw)
+      fit
+             end.rcode-->
+    <!--begin.rcode echo=TRUE
+      bflineplot <- rawplot + geom_abline(slope=fit$coefficients[2],
+                            intercept=fit$coefficients[1],
+                            color="blue",size=3)
+      bflineplot
+    end.rcode-->
+    <p>But what exactly is going on here?</p>
+    <h4>What is the line of best fit?</h4>
+    <p>The line of best fit is the straight line that minimises the sum of the
+    squared error.</p>
+    <!--begin.rcode echo=TRUE
+       residualplot <- bflineplot +
+                       geom_segment(x=raw$x,
+                                 y=raw$y,
+                                 yend=fit$coefficients[2]*raw$x+fit$coefficients[1],
+                                 xend=raw$x,
+                                 color="green",
+                                 size=2)
+
+       residualplot
+    end.rcode-->
+    <p>The line of best fit is the straight line that minimises the sum of the
+      squared length of all the green lines. The length of the green lines is
+      sometimes called "the residuals".</p>
+    <p>For those of you who speak R, this might be easier to understand with the
+      following function that calculates the error we are trying to minimise.</p>
+    <!-- begin.rcode echo=TRUE
+       calculate_error <- function(slope,intercept) {
+          predicted_y <- slope*raw$x + intercept
+          squared_error <- (predicted_y - raw$y)^2
+          return( sum(squared_error) )
+       }
+                           end.rcode-->
+    <p>This can be plotted (contour plot because plotting 3D seems hard!)</p>
+    <!--begin.rcode echo=TRUE
+      slopes <- seq(0,7,0.1)
+      intercepts <- seq(-1,9,0.1)
+      plot3Ddata <- expand.grid(slopes,intercepts)
+      names(plot3Ddata) <- c("slope","intercept")
+      plot3Ddata$error <- sapply(1:nrow(plot3Ddata), function(x) calculate_error(plot3Ddata$slope[x],plot3Ddata$intercept[x]))
+      contourplot <- ggplot(plot3Ddata,aes(x=slope,y=intercept,z=error)) +
+                          geom_contour(binwidth=10) +
+                          theme_minimal()
+      contourplot
+                          end.rcode-->
+    <p>This shows that the error is minimised with a slope value somewhere
+    between about 2.5 and 3 and an intercept somewhere between about 1.5 and
+      2.6.</p>
+    <p>In this case, we can determine the value analytically [warning:
+      maths]</p>
+    <small>The important thing isn't that you follow the derivation below. The
+    point is that the derivation exists and that a direct solution can be found.</small>
+    <p>
+      $$ error(slope,intercept) = \sum_{i=1}^{i=n} (y_{i} - (slope \circ x_{i} +
+      intercept))^2 $$
+      $$ \frac{\partial error}{\partial slope} = -2 \sum_{i=1}^{i=n} (y_{i} - (slope \circ x_{i} +
+      intercept)) \circ x_{i} $$
+      $$ \frac{\partial error}{\partial intercept} = -2 \sum_{i=1}^{i=n} (y_{i} - (slope \circ x_{i} +
+      intercept)) $$
+      At the minimum, both of these are zero. Rearranging the second of the
+      above derivatives gives
+      $$ intercept = \frac{\sum y_i - slope \circ \sum x_i}{n}  $$
+      $$ intercept = \bar{y} - slope \circ \bar{x} $$
+      Where $\bar{x}$ and $\bar{y}$ are the means of the $x_i$ and $y_i$
+      respectively.<br/>
+      Then substitute back into the slope equation
+      $$ 0 = \sum y_i x_i - slope \sum x_{i}^2 - intercept \sum x_i $$
+      $$ 0 = \sum y_i x_i - slope \sum x_{i}^2 - (\bar{y} - slope \circ \bar{x})
+      \sum x_i $$
+      Rearranging for slope
+      $$ slope = \frac{\sum x_i y_i - \bar{y} \sum x_{i}}{\sum x_i^{2} - \bar{x}
+      \sum x_i} $$
+    </p>
+    <p>In R:
+      <!--begin.rcode echo=TRUE
+        s <- (sum(raw$x*raw$y)-mean(raw$y)*sum(raw$x)) /
+             (sum(raw$x*raw$x) - mean(raw$x)*sum(raw$x))
+        i <- mean(raw$y) - s * mean(raw$x)
+        kable(data.frame(Slope=s,Intercept=i))
+             end.rcode-->
+      <!--begin.rcode echo=TRUE
+        contourplot + geom_point(x=s,y=i,colour="green",size=3)
+      end.rcode-->
+    </p>
+    <h4>Exercises</h4>
+    <ol>
+      <li><strong>BY HAND</strong> calculate the slope and intercept for a
+        straight line of best fit for the following data:
+        <table>
+          <thead>
+            <tr>
+              <th>x</th>
+              <th>y</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>4</td>
+            </tr>
+          </tbody>
+        </table>
+      </li>
+      <li>Check your answer using a computer</li>
+    </ol>
+    <h3>What is "best"?</h3>
+    <p>
+      In the example above "best" is defined as "the line that minimises the
+      sum of the squared error". This seems quite arbitrary <small>(but it
+      isn't)</small> so it is natural to ask if there are other definitions of
+      "best" that we could use.
+    </p>
+    <p>You can change the error function to pretty much anything you like to
+    come up with your own definition of "best". Here is a crazy example where
+    the line of best fit is the line that minimises two to the power of the
+    absolute value of the residuals. (Don't ask me why you would want to do
+      this).
+    </p>
+    <!--begin.rcode echo=TRUE
+    calculate_error <- function(parameters) {
+          slope <- parameters[1]
+          intercept <- parameters[2]
+          predicted_y <- slope*raw$x + intercept
+          exponented_error <- 2^abs(predicted_y - raw$y)
+          return( sum(exponented_error) )
+       }
+
+    # the optim function aims to minimise it's input
+    result <- optim(par = c(0, 1), calculate_error)
+    bflineplot + geom_abline(slope=result$par[1],
+                        intercept=result$par[2],
+                        color="red",size=3)
+              end.rcode-->
+    <p>The blue line is drawn using the "usual" method. The red line uses the
+      new crazy error function.</p>
+    <p>We will return to the topic of error functions later</p>
+    <h3>What is a line?</h3>
+    <p>We have tried to find the $slope$ and $intercept$ that minimise the error
+      when used in the formula
+      $$ y = slope \circ x + intercept $$
+    </p>
+    <p>We could also look to minimise error using the three parameters $a_{0}$,
+      $a_{1}$ and $a_{2}$ with the formula
+      $$y = a_{0} + a_{1}x + a_{2}x^{2}$$
+    </p>
+    <!--begin.rcode echo=TRUE
+    calculate_error <- function(parameters) {
+          predicted_y <- parameters[1] + parameters[2]*raw$x + parameters[3]*raw$x*raw$x
+          squared_error <- (predicted_y - raw$y)^2
+          return( sum(squared_error) )
+       }
+
+    result <- optim(par = c(0, 0, 0), calculate_error)
+
+    quad_line <- function(x) { result$par[1] + x*result$par[2] + x*x*result$par[3] }
+
+    bflineplot + stat_function(fun = quad_line, color="green", size=3)
+              end.rcode-->
+    <h4>Exercise</h4>
+    <p>
+      Fit a formula of the form
+      $$ y = a_{0} + a_{1}x + a_{2}sin(a_{3}x) $$
+      to the data.
+    </p>
+    <h2>Likelihood Methods</h2>
+    <p>
+      You have now seen one way of approaching the line of best fit problem -
+      aim to minimise a certain type of error.
+    </p>
+    <p>
+      Another way to approach this problem is to ask "what are the most likely
+      parameter values given the data I have?".
+    </p>
+    <p>
+      Here, the assumption is that the data is generated by some random process.
+      In our straight line example, we might model this as:
+      $$ y_{i} = mx_{i} + c + \epsilon_{i} $$
+      $$ \epsilon_{i} \sim N(0,\sigma) $$
+    </p>
+    <p>This says that each $y_{i}$ is what our model would predict from each
+    $x_{i}$ (using slope $m$ and intercept $c$) plus an error $\epsilon$ which
+      is normally distributed with mean zero and standard deviation $\sigma$.
+    </p>
+    <p>
+      With this model we can directly answer questions like "if the slope was 3,
+      the intercept 0 and the standard deviation 1, what is the chance we
+      observe y=5 at x=2?"</p>
+      <p><small>Again, the actual maths isn't important here. The important thing
+      is that you realise it is quite easy to calculate the probability of
+          observing some specific data given a model.</small></p>
+      <p>
+      $$ P(y=5 | x=2, slope=3, intercept=0, \sigma=1) = P(error = -1) $$
+      Because $ 3 \circ 2 + 0 = 6 $ so the error must be -1
+      $$ P(error = -1) = P(N(0,1)=-1) $$
+      Where $N(0,1)$ is the normal distribution density function
+      $$ P(error = -1) = \frac{1}{\sqrt{2 \pi}} e^{-\frac{1}{2}} $$
+      $$ P(error = -1) = 0.242 $$
+      I have abused notation and concepts when talking about continuous
+      distributions. I think I'm on safe enough ground here to get away with
+      it but please let me know if you get trapped in a paradox as a result of
+      this.
+      </p>
+    <p>Let's look at this more generally.</p>
+    <p>Suppose we have a model $$ y = f(\bar{a},x) $$ where $\bar{a}$ stands for
+      all the model parameters.</p>
+    <p>E.g. in our linear model, $$ y = f(m,c,x) $$
+      $$ y = mx +c $$
+    </p>
+    <p>Then our error is a function of the model parameters:
+      $$ error(\bar{a}) = \sum_{i} (y_{i} - f(\bar{a},x_{i}))^2 $$
+      and we look for the $\bar{a}$ that minimises the error. This is one way of
+      looking at it.
+    </p>
+    <p>The other way is that
+      $$ y_{i} = f(\bar{a},x_{i}) + \epsilon_{i}$$
+      $$ \epsilon_{i} \sim N(0,\sigma) $$
+    </p>
+    <p>Then the likelihood of observing all the $y_{i}$ depends on $\bar{a}$ and
+      $\sigma$:
+      $$likelihood \propto \prod P(\epsilon_{i} = y_{i} - f(\bar{a}, x_{i})) $$
+      Then because $\epsilon_{i}$ is normally distributed:
+      $$likelihood \propto \prod e^{-(y_{i} - f(\bar{a}, x_{i}))^2}$$
+      The likelihood is maximised when
+      $$\sum_{i} (y_{i} - f(\bar{a}, x_{i}))^2$$
+      is minimised.
+    </p>
+    <p>In this model (i.e. every model where we assume a normally distributed
+    error term) <strong>the likelihood is maximised at the same point the sum of the
+    squared errors is minimised!!!</strong></p>
+    <p>
+      This is pretty cool
+    </p>
+    <h3>Sampling</h3>
+    <p>
+      The likelihood approach means we can do things like sampling to see how our
+    parameters are distributed.
+    </p>
+    <p>The first thing is to write a "log likelihood" function. We use the log
+    because it prevents overflow in the computation; numbers tend to get very
+      small when we multiply lots of probabilities together.
+    </p>
+    <p>
+      <!--begin.rcode echo=TRUE
+      logLikelihood <- function(parameters) {
+         slope <- parameters[1]
+         intercept <- parameters[2]
+         sd <- parameters[3]
+         ## Auto reject samples with sd <=0
+         if(sd <= 0) { return(-Inf) }
+         err <- raw$y - (slope*raw$x + intercept)
+         ls <- dnorm(err,mean=0,sd=sd,log=TRUE)
+         ## sum instead of product because of logs
+         return(sum(ls))
+         }
+               end.rcode-->
+               </p>
+    <p>
+      We can then use the mcmc library to get our samples:</p>
+   <!--begin.rcode echo=TRUE
+     library(mcmc)
+     start <- c(0,0,1)
+     out <- metrop(logLikelihood,start,1000)
+            end.rcode-->
+   <p>Plot the results against the data</p>
+   <!--begin.rcode echo=TRUE
+      trace <- as.data.frame(out$batch)
+      names(trace) <- c("slope","intercept","sd")
+      rawplot + geom_abline(data=trace,
+                            aes(slope=slope,intercept=intercept),
+                            alpha=0.1,
+                            colour="green")
+                      end.rcode-->
+   </p>
+   <p>
+     As you can see, this is all over the place. What does this tell us?
+   </p>
+   <p>
+     It tells us that we can't be very certain of our slope or intercept
+     estimates. We can get more insight here by plotting the marginal
+     distributions.
+   </p>
+   <!--begin.rcode echo=TRUE
+     ggplot(trace,aes(x=slope)) + geom_histogram() + theme_minimal()
+   end.rcode-->
+   <p>
+      Values for the slope are spread between 0 and 4 and...</p>
+   <!--begin.rcode echo=TRUE
+     ggplot(trace,aes(x=intercept)) + geom_histogram() + theme_minimal()
+   end.rcode-->
+<p>values for the intercept are spread between 0 and 10!</p>
+   <p>Let's try with another example with a slightly more certain result (and
+    where we know the true model parameters</p>
+    <!--begin.rcode echo=TRUE
+      x <- seq(from=1,to=6,by=1)
+      y <- 3*x+0+rnorm(6,mean=0,sd=0.5)
+      raw2 <- data.frame(x=x,
+                         y=y
+                        )
+      raw2plot <- ggplot(raw2,aes(x=x,y=y)) +
+                     geom_point(size=5) +
+                     xlim(c(0,7)) +
+                     ylim(c(0,20)) +
+                     theme_minimal()
+      raw2plot
+      end.rcode-->
+    <p>Again, we need to make a likelihood function:
+    <!--begin.rcode echo=TRUE
+    logLikelihood <- function(parameters) {
+     slope <- parameters[1]
+     intercept <- parameters[2]
+     sd <- parameters[3]
+     if(sd <= 0) { return(-Inf) }
+     err <- raw2$y - (slope*raw2$x + intercept)
+     ls <- dnorm(err,mean=0,sd=sd,log=TRUE)
+     return(sum(ls))
+     }
+           end.rcode-->
+    </p>
+    <p>After which, we can do our sampling:</p>
+    <!--begin.rcode echo=TRUE
+      out <- metrop(logLikelihood,start,1000)
+      trace <- as.data.frame(out$batch)
+      names(trace) <- c("slope","intercept","sd")
+      raw2plot + geom_abline(data=trace,
+                         aes(slope=slope,intercept=intercept),
+                         alpha=0.1,
+                         colour="green")
+                      end.rcode-->
+    <p>Here we are much more sure about what the slope and intercept might be -
+      the distributions are much "narrower"</p>
+    <!--begin.rcode echo=TRUE
+     slopetrace <- ggplot(trace,aes(x=slope)) + geom_histogram() +
+      theme_minimal()
+     slopetrace
+   end.rcode-->
+   <!--begin.rcode echo=TRUE
+     intercepttrace <- ggplot(trace,aes(x=intercept)) + geom_histogram() +
+      theme_minimal()
+     intercepttrace
+   end.rcode-->
+   <!--begin.rcode echo=TRUE
+     # recall that the true value is 3
+     mean(trace$slope)
+   end.rcode-->
+    <p>
+      Not bad! And we could probably do better by increasing the number of
+     iterations
+    </p>
+   <h4>Exercises</h4>
+   <ol>
+     <li>Generate different amounts of data (e.g. 10 rows, 100 rows, 1000 rows) and
+       observe the effect this has on the certainty of our estimates.</li>
+     <li>Use the same mcmc approach to fit a quadratic model</li>
+     <li>Write a log-likelihood function using the assumption that the variance of the errors is proportional to x rather than being constant. Why might this be useful?</li>
+   </ol>
+   <p>HINT: Use the following R code to generate random data:
+     <!--begin.rcode echo=TRUE
+     ## n is the number of rows to generate
+     randomData <- function(n) {
+                     slope <- runif(1,min=0.5,max=4)
+                     intercept <- runif(1,min=-4,max=4)
+                     sd <- runif(1,min=2,max=10)
+                     error <- rnorm(n, mean=0, sd=sd)
+                     xs <- seq(from=1,to=n,by=1)
+                     ys <- slope*xs + intercept + error
+                     return( data.frame( x = seq(from=1,to=n,by=1),
+                                         y = ys) )
+                   }
+     randomData(5)
+                           end.rcode-->
+  </p>
+  <h2>Ridge and Lasso Regression</h2>
+  <p>
+    Let's look at what happens as we fit higher and higher degree polynomials
+    to our data.
+  </p>
+  <!--begin.rcode echo=TRUE
+  models <- data.frame(a0=mean(raw$y),a1=0, a2=0, a3=0, a4=0, a5=0)
+  for (i in c(1,2,3,4,5)) {
+    model <- lm(y ~ poly(x,i, raw=T), data=raw)
+    coefs <- model$coefficients
+    length(coefs) <- 6
+    models <- rbind(models, coefs)
+    }
+  models[is.na(models)] <- 0
+  kable(models)
+  end.rcode-->
+  <!--begin.rcode echo=TRUE
+  multipleplot <- ggplot(raw,aes(x=x,y=y)) +
+     geom_point() +
+     xlim(c(0,7)) +
+     ylim(c(0,20)) +
+     theme_minimal()
+  curve <- function(n,x) {
+      coefs <- models[n,,drop=TRUE]
+      coefs <- unlist(coefs)
+      return(coefs[1] + coefs[2]*x + coefs[3]*x^2 + coefs[4]*x^3 + coefs[5]*x^4 + coefs[6]*x^5)
+             }
+
+  multipleplot + stat_function(fun=function(x) { curve(1,x) }, color="green") +
+                 stat_function(fun=function(x) { curve(2,x) }, color="blue") +
+                 stat_function(fun=function(x) { curve(3,x) }, color="red") +
+                 stat_function(fun=function(x) { curve(4,x) }, color="purple") +
+                 stat_function(fun=function(x) { curve(5,x) }, color="orange") +
+                 stat_function(fun=function(x) { curve(6,x) }, color="yellow")
+               end.rcode-->
+  <p>
+    If it seems unreasonable to you that we should need a coefficient as large
+    as 136 to fit such a simple example then you're going to love Lasso and
+    Ridge regression.
+  </p>
+  <h3>The models</h3>
+  <p>
+    The idea behind both Lasso and Ridge regression are very similar: change the
+    error function to penalise large coefficients in the model.
+    $$ error_{ridge} = \sum_{i} (y_{i} - Ax_{i})^2 + \lambda \sum_{j} a_{j}^2 $$
+    $$ error_{lasso} = \sum_{i} (y_{i} - Ax_{i})^2 + \lambda \sum_{j} | a_{j} |$$
+    Both of these add a penalty term to the error function that penalises the
+    size of the model coefficients.
+  </p>
+  <p>
+    Ridge regression penalises based on the sum of squares of the model
+    coefficients and Lasso regression penalises on the sum of the absolute
+    values.
+  </p>
+  <p>
+    Both models have a tuning parameter $\lambda$ that should be manually specified.
+  </p>
+  <!--begin.rcode echo=TRUE
+  library(MASS)
+  res <- lm.ridge(y ~ poly(x,5, raw=T), lambda=6, data=raw)
+  kable(res$coef)
+         end.rcode-->
+  <p>This seems much more reasonable</p>
+  <h4>Exercise</h4>
+  <ol>
+    <li>Explore how the coefficients change as the tuning parameter $\lambda$ is
+      adjusted.</li>
+    <li>Plot these curves on a graph</li>
+  </ol>
+<p>Unfortunately, fitting a Lasso model is not quite so easy.</p>
+<p>The <code>glmnet</code> library can do this, but it doesn't accept the formula
+  notation used above so we have to engineer our own features.</p>
+<!--begin.rcode echo=TRUE
+library(glmnet)
+
+xs <- matrix(c(raw$x, raw$x^2, raw$x^3, raw$x^4, raw$x^5), ncol=5)
+## cv.glmnet uses cross validation to help find the optimal value of lambda
+fit <- cv.glmnet(xs,raw$y,nfolds=6)
+## lamda.1se is the largest value of lamda for which the MSE of the model
+## is within 1 standard deviation of the minimum
+coef(fit, s = "lambda.1se")
+end.rcode-->
+<p>Here the Lasso has set the intercept and one coefficient and set the rest to
+  zero.</p>
+<h4>Exercises</h4>
+<ol>
+  <li>Why are these coefficients different to the ones we had in our linear
+    model earlier?</li>
+  <li>Explore how the Lasso prediction changes as lambda is adjusted</li>
+  <li>The cross validation step isn't very useful with such a small dataset. Try
+    it again with 1000 rows</li>
+</ol>
+<p>HINT: You can see the coefficients for a particular value of lambda like
+  this:
+  <!--begin.rcode echo=TRUE
+  coef(fit, s=0.5)
+  end.rcode-->
+</p>
+<h3>Probabilistic interpretation</h3>
+<p>What does this mean if we interpret it in terms of a probabilistic model?</p>
+<p>Ridge regression is the same as saying you have a gaussian prior distribution
+  on the model parameters (i.e. you expect them to be normally distributed
+  around zero).</p>
+<p>The Lasso is the same except instead of a gaussian prior a Laplacian
+  distribution is assumed instead. The Laplace distribution has fatter tails
+  than the normal distribution.</p>
+<h4>Exercise</h4>
+<ol>
+  <li>Write a log-likelihood function for ridge regression on the raw dataset.</li>
+  <li>How would this change if you expected the slope parameter to be about 5?</li>
+</ol>
+
+<h3>Elastic Net</h3>
+<p>The Ridge and Lasso techniques can be combined into something called the
+  "Elastic Net". This both shrinks coefficients and eliminates them.</p>
+<p>The elastic net is more flexible for high dimensional data and deals with
+  correlated variables better than either Lasso or ridge regression do on their
+  own.</p>
+<p>Using elastic net is very similar to using the Lasso.</p>
+  <!--begin.rcode echo=TRUE
+  fit <- glmnet(xs, raw$y, alpha=0.5, lambda=1)
+  coef(fit)
+  end.rcode-->
+  <p>The <code>alpha</code> parameter can vary between 0 and 1. 1 is the same as
+         Lasso and 0 is the same as ridge regression.
+         </p>
+
+<h2>Final Exercises</h2>
+<ol>
+  <li>Using the anscombe data set and linear models explore the different
+    regression methods you have seen so far.
+    <p>HINT: Use <!--rinline data(anscombe) --> to load the data. This gives you
+    a data frame containing 4 different sets of points: (X1,Y1), (X2,Y2) and so
+      on.
+  </p></li>
+  <li>Use the longley dataset to explore how all the other factors influence
+  employment.
+  As <a href="https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/longley.html">the
+      help page</a> says, "lm(Employed ~ .) is known to be highly collinear"</li>
+  <li>Build a model predicting wine quality using the data found at
+  http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv
+  and
+    http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv</li>
+</ol>
+</div>
+</body>
