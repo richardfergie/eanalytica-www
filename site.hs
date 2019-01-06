@@ -191,6 +191,28 @@ main = hakyll $ do
       route   idRoute
       compile copyFileCompiler
 
+    create ["sitemap.xml"] $ do
+         route   idRoute
+         compile $ do
+           posts <- recentFirst =<< loadAll "posts/*"
+           raw <- (loadAll "raw/*")::(Compiler [Item CopyFile])
+           let sitemapCtx = mconcat
+                            [ listField "rawentries"
+                                        (field "url" (return .
+                                                      (replaceAll ".html" (const "/")) .
+                                                      (drop 4) .
+                                                      toFilePath .
+                                                      itemIdentifier)) $ return raw
+                            , listField "blogentries"
+                                        (mapContext (replaceAll "/index.html" (const "/")) postCtx)
+                                        $ return posts
+                            , defaultContext
+                            ]
+           makeItem ""
+            >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
+             >>= slashUrlsCompiler
+
+
     match "templates/*" $ compile templateCompiler
 
 
@@ -198,5 +220,6 @@ main = hakyll $ do
 postCtx :: Context String
 postCtx =
     dateField "date" "%B %e, %Y" <>
+    dateField "lastmod" "%Y-%m-%d" <>
     field "blog" (const $ return "blog") <>
     defaultContext
