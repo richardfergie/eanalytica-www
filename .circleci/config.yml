@@ -18,9 +18,9 @@ jobs:
             - .stack-work
             - ~/.stack
       - restore_cache:
-          keys: {{ checksum "site.hs" }}
+          keys: sitecache-{{ checksum "site.hs" }}
       - run: ~/.local/bin/eanalytica-www build
       - save_cache:
-          key: {{ checksum "site.hs" }}-{{ epoch }}
+          key: sitecache-{{ checksum "site.hs" }}-{{ epoch }}
           paths: _site
       - run: aws s3 sync _site s3://com.eanalytica.www2/
