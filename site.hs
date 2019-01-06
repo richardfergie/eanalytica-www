@@ -112,6 +112,10 @@ main = hakyll $ do
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
 
+    match "google49c11d79480ceef2.html" $ do
+      route idRoute
+      compile copyFileCompiler
+
     match "posts/*" $ do
         route blogRoute
         compile $ pandocCompiler
