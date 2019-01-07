@@ -108,7 +108,8 @@ h1 {
 
 .btn-sm {
     border-radius: 4px;
-    padding: 10px 14px 11px
+    padding: 10px 14px 11px;
+    font-size: 14px;
 }
 
 label>* {
@@ -349,4 +350,10 @@ div.hero input {
 }
 div.hero textarea {
     background: white;
+}
+div.help {
+    display: none;
+}
+div.row.normal {
+    overflow: visible;
 }
