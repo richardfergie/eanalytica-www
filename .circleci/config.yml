@@ -19,7 +19,7 @@ jobs:
             - ~/.stack
             - ~/.local/bin
       - restore_cache:
-          keys: sitecache-{{ checksum "site.hs" }}
+          key: sitecache-{{ checksum "site.hs" }}
       - run: ~/.local/bin/eanalytica-www build
       - save_cache:
           key: sitecache-{{ checksum "site.hs" }}-{{ epoch }}
