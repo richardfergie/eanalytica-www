@@ -6,6 +6,8 @@ import Hakyll
 import System.FilePath
 import Data.List
 import Text.Pandoc
+import Text.Jasmine
+import qualified Data.ByteString.Lazy.Char8 as C
 
 --------------------------------------------------------------------------------
 cleanDate :: Routes
@@ -88,6 +90,13 @@ rawRoute = gsubRoute "raw/" (const "")
                 `composeRoutes` gsubRoute ".markdown" (const "/index.html")
                 `composeRoutes` gsubRoute ".lhs" (const "/index.html")
 
+minifyJSCompiler = do
+   s <- getResourceString
+   return $ itemSetBody (minifyJS s) s
+
+minifyJS = C.unpack . minify . C.pack . itemBody
+
+
 main :: IO ()
 main = hakyll $ do
     match "images/*" $ do
@@ -101,6 +110,10 @@ main = hakyll $ do
     match "css/*" $ do
         route   idRoute
         compile compressCssCompiler
+
+    match "js/**" $ do
+      route idRoute
+      compile minifyJSCompiler
 
     match "raw/*" $ do
       route rawRoute
