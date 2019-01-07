@@ -17,6 +17,7 @@ jobs:
           paths:
             - .stack-work
             - ~/.stack
+            - ~/.local/bin
       - restore_cache:
           keys: sitecache-{{ checksum "site.hs" }}
       - run: ~/.local/bin/eanalytica-www build
