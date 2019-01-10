@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		    <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Erg Screen Reader - E-Analytica</title>
+        <link rel="stylesheet" type="text/css" href="/css/min.css" />
+        <style>
+            input.smooth {
+            display: inline;
+            }
+         #edit { display: inline;}
+         label {display: inline;}
+         span.addon {display: inline;}
+         #result {display:none;}
+         #thanks {display:none;}
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function () {
+              $("#photoFormSubmit").click(function (event) {
+                event.preventDefault();
+                $('#thanks').hide()
+                $("#photoFormSubmit").prop("disabled", true);
+                var form = $('#photoForm')[0];
+                var data = new FormData(form);
+                $.ajax({
+                  type: "POST",
+                  enctype: 'multipart/form-data',
+                  url: "https://europe-west1-erg-screen-reader.cloudfunctions.net/Process-Screen",
+                  data: data,
+                  processData: false,
+                  contentType: false,
+                  cache: false,
+                  success: function (data) {
+                    console.log(data);
+                    $("#btnSubmit").prop("disabled", false);
+                    result = $.parseJSON(data)
+                    $('#file').val(result.file ? result.file : "unknown");
+                    $('#hours').val(result.result.time.hour ? result.time.hour : 0);
+                    $('#minutes').val(result.result.time.minute ? result.result.time.minute : 0);
+                    $('#seconds').val(result.result.time.second ? result.result.time.second : 0);
+                    $('#tenths').val(result.result.time.tenth ? result.result.time.second : 0);
+                    $('#distance').val(result.result.distance ? result.result.distance : 0);
+                    $('#result').show()
+                  },
+                  error: function (e) {
+                    console.log("ERROR : ", e);
+                    $("#btnSubmit").prop("disabled", false);
+                  }
+                });
+              });
+
+              $("#edit").change(function() {
+                  if(this.checked) {
+                        $('#hours').prop("disabled", false)
+                        $('#minutes').prop("disabled", false)
+                        $('#seconds').prop("disabled", false)
+                        $('#tenths').prop("disabled", false)
+                        $('#distance').prop("disabled", false)
+                        $('#resultFormSubmit').prop("value","Send Corrections")
+                    } else {
+                        $('#hours').prop("disabled", true)
+                        $('#minutes').prop("disabled", true)
+                        $('#seconds').prop("disabled", true)
+                        $('#tenths').prop("disabled", true)
+                        $('#distance').prop("disabled", true)
+                        $('#resultFormSubmit').prop("value","All Looks Good!")
+                    }
+              });
+
+              $('#resultFormSubmit').click( function(event) {
+                 event.preventDefault();
+                 $("#resultFormSubmit").prop("disabled", true);
+                 $('#hours').prop("disabled", false)
+                 $('#minutes').prop("disabled", false)
+                 $('#seconds').prop("disabled", false)
+                 $('#tenths').prop("disabled", false)
+                 $('#distance').prop("disabled", false)
+                 data = $('#resultForm').serializeArray();
+                 json = {}
+                 $.each(data, function() {
+                      json[this.name] = this.value || '';
+                 });
+                 $.ajax({
+                     type: "POST",
+                     url: "https://europe-west1-erg-screen-reader.cloudfunctions.net/Save-user-corrections",
+                     data: JSON.stringify(json),
+                     contentType: "application/json; charset=utf-8",
+                     dataType: "json",
+                 }).done( function() { $('#result').hide(); $('#thanks').show(); $("#resultFormSubmit").prop("disabled", false); $("#btnSubmit").prop("disabled", false);});
+              });
+
+              });
+        </script>
+
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">
+                E-Analytica
+            </div>
+        </div>
+        <nav class="nav" tabindex="-1" >
+            <div class="container">
+                <a href="/" $if(home)$ class="current" $endif$ >Home</a>
+                <a href="/about/" $if(about)$ class="current" $endif$ >About</a>
+                <a href="/services/" $if(services)$ class="current" $endif$ >Services</a>
+                <a href="/blog/" $if(blog)$ class="current" $endif$ >Archive</a>
+                <a href="/contact/" $if(contact)$ class="current" $endif$ >Contact</a>
+            </div>
+        </nav>
+
+        <div class="container narrow">
+            <h1>Erg Screen Reader</h1>
+            <ol>
+                <li>Upload a photo of the Concept2 workout summary screen</li>
+                <li>See if the total time and distance is correctly read</li>
+                <li>If the totals are wrong, send the correct values</li>
+            </ol>
+            <form method="POST" enctype="multipart/form-data" id="photoForm">
+                <input type="file" name="screenshot">
+                <input type="submit" value="Upload" id="photoFormSubmit">
+            </form>
+            <div id="thanks">
+                Thank you.
+            </div>
+            <div id="result">
+                <h3>Result</h3>
+                <form method="POST" enctype="multipart/form-data" id="resultForm" autocomplete="off">
+                    <input type="hidden" name="file" id="file">
+                    <span class="addon">Hours</span>
+                    <input type="number" name="hours" id="hours" class="smooth" disabled="true"><br/>
+
+                    <span class="addon">Minutes</span>
+                    <input type="number" name="minutes" id="minutes" class="smooth" disabled="true"><br/>
+
+                    <span class="addon">Seconds</span>
+                    <input type="number" name="seconds" id="seconds" class="smooth" disabled="true"><br/>
+
+                    <span class="addon">Tenths</span>
+                    <input type="number" name="tenths" id="tenths" class="smooth" disabled="true"><br/>
+
+                    <span class="addon">Distance</span>
+                    <input type="number" name="distance" id="distance" class="smooth" disabled="true"><br/>
+
+                    <label for="edit">These numbers are wrong. Make corrections?</label>
+                    <input type="checkbox" id="edit" name="edit"><br/>
+                    <input type="submit" id="resultFormSubmit" value="All Looks Good!">
+                </form>
+            </div>
+            <div>
+                <p><a href="/Screen-reading-with-open-OpenCV-and-Google/">Read more about how it all works</a>.</p>
+                <p>
+                    The <em>only</em> data collected is the photo you send. <em>But</em> it is sent to Google - so they might be able to link up the rest of your online identity with your skinny erg scores.
+                </p>
+        <hr/>
+        <div id="footer">
+            <div class="row">
+                <a href="/" $if(home)$ class="current" $endif$ >Home</a>
+                <a href="/about" $if(about)$ class="current" $endif$ >About</a>
+                <a href="/services/" $if(services)$ class="current" $endif$ >Services</a>
+                <a href="/blog/" $if(blog)$ class="current" $endif$ >Archive</a>
+                <a href="/contact/" $if(contact)$ class="current" $endif$ >Contact</a>
+            </div>
+        </div>
+        </div>
+    </body>
+</html>
