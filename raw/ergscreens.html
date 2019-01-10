@@ -48,7 +48,9 @@
                   },
                   error: function (e) {
                     console.log("ERROR : ", e);
+                    json_error = $.parseJSON(e.responseText)
                     $("#btnSubmit").prop("disabled", false);
+                    $('#message').html('<strong>Error</strong> '+json_error.status+'<p>Try a different file?</p>');
                   }
                 });
               });
@@ -124,6 +126,8 @@
                 <input type="file" name="screenshot">
                 <input type="submit" value="Upload" id="photoFormSubmit">
             </form>
+            <div id="message">
+            </div>
             <div id="thanks">
                 Thank you.
             </div>
