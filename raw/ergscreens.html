@@ -6,7 +6,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		    <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Erg Screen Reader - E-Analytica</title>
-        <link rel="stylesheet" type="text/css" href="/css/min.css" />
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" />
         <style>
             input.smooth {
             display: inline;
@@ -22,21 +22,6 @@
     </head>
     <body>
         <div class="container">
-            <div class="logo">
-                E-Analytica
-            </div>
-        </div>
-        <nav class="nav" tabindex="-1" >
-            <div class="container">
-                <a href="/" $if(home)$ class="current" $endif$ >Home</a>
-                <a href="/about/" $if(about)$ class="current" $endif$ >About</a>
-                <a href="/services/" $if(services)$ class="current" $endif$ >Services</a>
-                <a href="/blog/" $if(blog)$ class="current" $endif$ >Archive</a>
-                <a href="/contact/" $if(contact)$ class="current" $endif$ >Contact</a>
-            </div>
-        </nav>
-
-        <div class="container narrow">
             <h1>Erg Screen Reader</h1>
             <ol>
                 <li>Upload a photo of the Concept2 workout summary screen</li>
@@ -45,7 +30,7 @@
             </ol>
             <form method="POST" enctype="multipart/form-data" id="photoForm">
                 <input type="file" name="screenshot">
-                <input type="submit" value="Upload" id="photoFormSubmit">
+                <input type="submit" value="Upload" id="photoFormSubmit" class="button-primary">
             </form>
             <div id="image">
             </div>
@@ -79,20 +64,12 @@
                 </form>
             </div>
             <div>
+                <hr/>
                 <p><a href="/Screen-reading-with-open-OpenCV-and-Google/">Read more about how it all works</a>.</p>
                 <p>
                     The <em>only</em> data collected is the photo you send. <em>But</em> it is sent to Google - so they might be able to link up the rest of your online identity with your skinny erg scores.
                 </p>
         <hr/>
-        <div id="footer">
-            <div class="row">
-                <a href="/" $if(home)$ class="current" $endif$ >Home</a>
-                <a href="/about" $if(about)$ class="current" $endif$ >About</a>
-                <a href="/services/" $if(services)$ class="current" $endif$ >Services</a>
-                <a href="/blog/" $if(blog)$ class="current" $endif$ >Archive</a>
-                <a href="/contact/" $if(contact)$ class="current" $endif$ >Contact</a>
-            </div>
-        </div>
         </div>
     </body>
 </html>
