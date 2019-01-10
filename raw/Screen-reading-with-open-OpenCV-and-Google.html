@@ -13138,7 +13138,7 @@ nav {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Screen-Reading-with-OpenCV-and-Google-Vision-APIs">Screen Reading with OpenCV and Google Vision APIs<a class="anchor-link" href="#Screen-Reading-with-OpenCV-and-Google-Vision-APIs">&#182;</a></h1><p>These days I do quite a lot of rowing.</p>
+<h1 id="Screen-Reading-with-OpenCV-and-Google-Vision-APIs">Screen Reading with OpenCV and Google Vision APIs<a class="anchor-link" href="#Screen-Reading-with-OpenCV-and-Google-Vision-APIs">&#182;</a></h1><p>These days I'm doing some rowing again.</p>
 <p>When I'm not rowing in a boat on the river, I use a Concept2 rowing machine at the gym (known as "the erg"). I am a bit of a nerd in all areas of my life (even sport where, sometimes, I am almost a jock) so I like to digitally log my workouts.</p>
 <p>I find that the more convienient logging is, the more likely I am to consistently do it. Rowing on the water is automagically logged by my watch but for rowing on the erg I need to manually note the distances/speeds completed. There <em>are</em> apps that can do this, but they only connect to the more recent versions of the Concept2.</p>
 <p>At the moment my process is a bit like this:</p>
@@ -13149,8 +13149,10 @@ nav {
 </ol>
 <p>I think it should be possible to eliminate step 3 by algorithmically recognising the numbers of interest in the photo</p>
 <p>The workout summary screen always looks something a bit like this:
-<img src="&quot;files/data/tom.jpg&quot;" alt="Tom&#39;s 5k prep"></p>
+<img src="https://www.eanalytica.com/files/15941511_10101906967269469_7134475266949304712_n.jpg" width="25%"></p>
 <p>My first attempt just sent the whole image to Google's Cloud Vision API to use their OCR service. The results were not ideal; with the layout of the screen not quite being a table Google seem to struggle with knowing which order to present the text they recognise. E.g. the might group the totals/averages together (as I want) or they might group the time in with the column headings and the logo (which I don't want).</p>
+<p>Here is a typical example:
+<img src="https://www.eanalytica.com/files/vision-example.jpeg" width="75%"></p>
 <p>This does suggest a plan of attack; if I can extract just the totals/averages from the image then Google's OCR service should be able to manage this quite well.</p>
 <p>I'm going to do all this in python because the opencv python library seems to have better support/docs than other languages.</p>
 <p>We'll start with some notebook settings and imports</p>
@@ -14476,20 +14478,12 @@ Found screen (prob. backlit)
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;GOOGLE_APPLICATION_CREDENTIALS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;YOUR_CREDENTIALS.json&quot;</span>
 
 <span class="k">def</span> <span class="nf">cloudAnalysis</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
-    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
-    <span class="n">bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s2">&quot;YOUR_BUCKET_NAME&quot;</span><span class="p">)</span>
-    <span class="n">blob</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdirname</span><span class="p">:</span>
-        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">,</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">blob</span><span class="o">.</span><span class="n">download_to_filename</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
-        <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="n">screen</span> <span class="o">=</span> <span class="n">extractScreen</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
         <span class="n">totals</span> <span class="o">=</span> <span class="n">extractTotalRow</span><span class="p">(</span><span class="n">screen</span><span class="p">)</span>
         <span class="n">totals_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">,</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.totals.jpg&quot;</span><span class="p">)</span>
         <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">totals_file</span><span class="p">,</span> <span class="n">totals</span><span class="p">)</span>
-        <span class="n">upload_bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s2">&quot;ergscreens_com_totals&quot;</span><span class="p">)</span>
-        <span class="n">upload_blob</span> <span class="o">=</span> <span class="n">upload_bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">upload_blob</span><span class="o">.</span><span class="n">upload_from_filename</span><span class="p">(</span><span class="n">totals_file</span><span class="p">)</span>
         <span class="n">vision_client</span> <span class="o">=</span> <span class="n">vision</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">totals_file</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">image_file</span><span class="p">:</span>
              <span class="n">image</span> <span class="o">=</span> <span class="n">vision_client</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">image_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
