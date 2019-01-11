@@ -33,7 +33,12 @@ $(document).ready(function () {
                 $("#photoFormSubmit").prop("disabled", false);
                 try {
                     json_error = $.parseJSON(e.responseText);
-                    $('#message').html('<strong>Error:</strong> '+json_error.status+'<p>Try a different file?</p>');
+                    if (json_error.rawText) {
+                        message = json_error.status + ". The API returned <pre>"+json_error.rawText+"</pre> and it is not yet possible to turn this into an erg score"
+                    } else {
+                        message = json_error.status
+                    }
+                    $('#message').html('<strong>Error:</strong> '+message+'<p>Try a different file?</p>');
                     $('#image').html('<img src="http://storage.googleapis.com/ergscreens_resized/'+json_error.file+'"/>');
                 }
                 catch(error) {
