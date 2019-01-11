@@ -40,6 +40,7 @@ $(document).ready(function () {
                     }
                     $('#message').html('<strong>Error:</strong> '+message+'<p>Try a different file?</p>');
                     $('#image').html('<img src="http://storage.googleapis.com/ergscreens_resized/'+json_error.file+'"/>');
+                    $('#result').show()
                 }
                 catch(error) {
                   $('#message').html("<strong>Error:</strong> This error is so bad I can't even.<p>It is probably not your fault. Try the same image again or a different image.</p>")
