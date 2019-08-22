@@ -351,9 +351,3 @@ div.hero input {
 div.hero textarea {
     background: white;
 }
-div.help {
-    display: none;
-}
-div.row.normal {
-    overflow: visible;
-}
