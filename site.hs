@@ -26,6 +26,15 @@ blogRoute  =
       `composeRoutes` gsubRoute ".lhs" (const "/index.html")
       `composeRoutes` gsubRoute ".org" (const "/index.html")
 
+notesRoute :: Routes
+notesRoute =
+  gsubRoute "notes/" (const "notes/")
+      `composeRoutes` cleanDate
+      `composeRoutes` gsubRoute ".markdown" (const "/index.html")
+      `composeRoutes` gsubRoute ".html" (const "/index.html")
+      `composeRoutes` gsubRoute ".lhs" (const "/index.html")
+      `composeRoutes` gsubRoute ".org" (const "/index.html")
+
 slashUrlsCompiler :: Item String -> Compiler (Item String)
 slashUrlsCompiler item = do
      route <- getRoute $ itemIdentifier item
@@ -41,12 +50,18 @@ slashUrls = withUrls convert
 makeId :: PageNumber -> Identifier
 makeId pageNum = fromFilePath $ "blog/page/" ++ (show pageNum) ++ "/index.html"
 
+makeNoteId pageNum = fromFilePath $ "notes/page/" ++ (show pageNum) ++ "/index.html"
+
 grouper :: MonadMetadata m => [Identifier] -> m [[Identifier]]
 grouper ids = (liftM (paginateEvery 5) . sortRecentFirst) ids
 
 archiveRoute pageNum = case pageNum of
   1 -> constRoute "blog/index.html"
   x -> constRoute $ "blog/"++(show x)++"/index.html"
+
+notesArchive pageNum = case pageNum of
+  1 -> constRoute "notes/index.html"
+  x -> constRoute $ "notes/"++(show x)++"/index.html"
 
 introField :: Context String
 introField = field "intro" $ \item -> do
@@ -138,7 +153,18 @@ main = hakyll $ do
             >>= relativizeUrls
             >>= slashUrlsCompiler
 
+    match "notes/*" $ do
+        route notesRoute
+        compile $ pandocCompiler
+            >>= saveSnapshot "intro"
+            >>= loadAndApplyTemplate "templates/post.html"    noteCtx
+            >>= loadAndApplyTemplate "templates/default.html" noteCtx
+            >>= relativizeUrls
+            >>= slashUrlsCompiler
+
     pag <- buildPaginateWith grouper "posts/*" makeId
+
+    notes <- buildPaginateWith grouper "notes/*" makeNoteId
 
     paginateRules pag $ \pageNum pattern -> do
         route $ archiveRoute pageNum
@@ -151,6 +177,25 @@ main = hakyll $ do
                 ctx = constField "title" title <>
                       listField "posts" (postCtx <> introField) (return posts) <>
                       field "blog" (const $ return "blog") <>
+                      paginateCtx <>
+                      defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/archive.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+                >>= slashUrlsCompiler
+
+    paginateRules notes $ \pageNum pattern -> do
+        route $ notesArchive pageNum
+        compile $ do
+            posts <- recentFirst =<< loadAll pattern
+            let paginateCtx = paginateContext notes pageNum
+                title = case pageNum of
+                  1 -> "Notes"
+                  x -> "Notes - Page "++(show x)
+                ctx = constField "title" title <>
+                      listField "posts" (noteCtx <> introField) (return posts) <>
+                      field "notes" (const $ return "notes") <>
                       paginateCtx <>
                       defaultContext
             makeItem ""
@@ -239,4 +284,11 @@ postCtx =
     dateField "date" "%B %e, %Y" <>
     dateField "lastmod" "%Y-%m-%d" <>
     field "blog" (const $ return "blog") <>
+    defaultContext
+
+noteCtx :: Context String
+noteCtx =
+    dateField "date" "%B %e, %Y" <>
+    dateField "lastmod" "%Y-%m-%d" <>
+    field "notes" (const $ return "notes") <>
     defaultContext

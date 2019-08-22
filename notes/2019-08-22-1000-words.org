@@ -1,0 +1,100 @@
+---
+title: 1000 words
+---
+I have challenged myself to write one thousand words this week. I'll do the same
+next week and hopefully start to build a habit. One thousand words isn't very
+much to read but, at the moment, it feels like a lot to write; hopefully as the
+habit builds and the creative juices start flowing a bit more easily I will be
+able to increase to 2000 words (and maybe beyond).
+
+Most of the (non-email, non-messenger and non-code) writing I've attempted to do
+over the past few years has been of a technical nature. e.g. a blog post
+exploring some aspect of machine learning. This type of writing is not good for
+efficiently hitting a word count because I end up spending just as much, or
+more, time on the technical aspects rather than the words. For this type of post
+to ever get finished I would need to choose a topic I am very comfortable with
+to start with but this is less interesting.
+
+So instead I am trying to pick a topic that I can write about in a more "stream
+of consciousness" style so that it is the writing that takes the time and energy
+rather than anything else - I want to be able to get in a state of flow quickly
+and more easily. Then, once this skill is improved, I will be able to start to
+apply it elsewhere.
+
+Are my motivations purely professional with this? i.e. if I didn't anticipate a
+business benefit would I still be interested in doing this? In some ways, yes. I
+guess I believe that being able to write (and write well) is virtuous and I
+admire people who can do it regularly. But there are lots of things like that
+and I certainly don't have time to do them all so why focus on this one?
+
+I think the reason for ranking this so highly as a skill I'd like to develop
+must be mostly because of the professional impact I expect it will have. I've
+seen many people (Kevin, Rand, Paul Graham(?), it feels like there should be
+more) build a lot of success of writing. I feel like I'm doing lots of
+interesting stuff, maybe on the cutting edge, that is under appreciated because
+I don't tell anyone what is going on. For someone like me who doesn't live in
+London and who doesn't like "sales" writing is a good way to get the word out
+about what I do and what I'm interested in. Seeing how other people have
+succeeded with this in the past gives confidence that this is a viable strategy.
+
+BUT! In some ways blogging is dead; RSS is in decline and people are more likely
+to consume directly from Twitter, Facebook or Linkedin (maybe instagram too?)
+rather than longform content elsewhere. It is very reasonable to say that it is
+not possible to use the methods of the noughties to grow and reach an audience
+today.
+
+Luckily for me, my audience is small and (I think - not sure how to check this
+really) they do read longform stuff online. Whether this is the stuff I want to
+write or not is another question but the point I'm making earlier is that the
+type of writing I'm doing isn't the blocker; the blocker is that I'm not doing
+any writing at all!
+
+The first step is to start writing (happening now) to improve this skill and
+develop the habit. The second step will be to start writing something that I'm
+happy to publish online and then the third, if I ever get there, will be to
+write good stuff for the right audience. Maybe that third step is actually
+multiple steps each of which is difficult but I'll worry about that when I get
+there.
+
+"happy to publish" online is a weird bar to set. I publish some extremely low
+quality inane stuff on my twitter and I don't have a problem with that. I'd also
+be fairly easy going about publishing this bit of nonsense somewhere on the
+internet (especially considering it is almost certain that no one will read it)
+but I'm not sure I'd want to publish it on E-Analytica. The kind of people who I
+want to reach there are probably not the kind of people who would be interested
+in reading this unless they knew me already. I guess that is the conflict of
+blogging; they can't all be zingers but is it a blog if you only post once per
+year. And do you need more than that?
+
+In the old days (10 years ago!) you'd want regular content so that you'd always
+be in people's feeds. Now this has moved to social media where mediocre content
+won't get spread around as much so it might be better to save the energy for
+publishing more of the good stuff.
+
+"save the energy" is a bad choice of words there - the blocker isn't the lack of
+high quality writing, it is the lack of *any* writing - I really mean "don't
+publish the mediocre stuff" or something like that. Which is what I'm doing by
+default with this piece in my scratchpad.
+
+I imagine a growing collection of half formed thoughts and dead end essays each
+of which contributes to my growing fluency and each of which may contribute
+paragraphs and ideas to the "great content" that I might one day produce. That
+is optimistic but, if it doesn't work out, I'll still have done some regular
+writing and improved my fluency which is virtuous in itself.
+
+The other option is "publish and be dammed" and I do find this quite tempting.
+On another blog, or on E-Analytica but separate from the main site hierarchy.
+The latter feels like an authentic expression of self (which I like) but which
+may also inhibit me writing at all. And the other thing is that it will lead me
+into the temptation of spending a lot of time on publishing workflows i.e.
+updating hakyll, site templates etc. Time that I could more usefully spend on
+something else.
+
+But the allure of "just make it easy to publish and you'll write more" is
+tempting. However, it should be rephrased as "just make it easy to publish and
+you'll spend less time optimising your publishing workflow".
+
+I'm over 1000 words now and haven't worried at all about directory structure,
+where to store stuff, CI or automated post tagging so I think the above point is
+a good one. When I'm writing; write! Worry about the other stuff some other
+time.
