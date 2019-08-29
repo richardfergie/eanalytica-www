@@ -8,8 +8,19 @@ import Data.List
 import Text.Pandoc
 import Text.Jasmine
 import qualified Data.ByteString.Lazy.Char8 as C
+import Hakyll.Web.Pandoc
+import Text.Pandoc.SelfContained
 
 --------------------------------------------------------------------------------
+selfContainedPandocCompilerWith readerOpts writerOpts = do
+  item <- getResourceBody
+  rpandoc <- readPandocWith readerOpts item
+  let html = (writePandocWith writerOpts rpandoc)
+  html' <- unsafeCompiler $ makeSelfContained writerOpts (itemBody html)
+  return $ item{itemBody=html'}
+
+selfContainedPandocCompiler = selfContainedPandocCompilerWith defaultHakyllReaderOptions defaultHakyllWriterOptions
+
 cleanDate :: Routes
 cleanDate = customRoute removeDatePrefix
 
@@ -30,6 +41,7 @@ notesRoute :: Routes
 notesRoute =
   gsubRoute "notes/" (const "notes/")
       `composeRoutes` cleanDate
+      `composeRoutes` gsubRoute ".md" (const "/index.html")
       `composeRoutes` gsubRoute ".markdown" (const "/index.html")
       `composeRoutes` gsubRoute ".html" (const "/index.html")
       `composeRoutes` gsubRoute ".lhs" (const "/index.html")
@@ -155,7 +167,7 @@ main = hakyll $ do
 
     match "notes/*" $ do
         route notesRoute
-        compile $ pandocCompiler
+        compile $ selfContainedPandocCompiler
             >>= saveSnapshot "intro"
             >>= loadAndApplyTemplate "templates/post.html"    noteCtx
             >>= loadAndApplyTemplate "templates/default.html" noteCtx
