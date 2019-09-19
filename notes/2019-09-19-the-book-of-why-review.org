@@ -1,0 +1,105 @@
+---
+title: 'Book Review: "The Book of Why"'
+---
+I have recently finished reading "The Book of Why" by Judea Pearl. It is not my
+first encounter with Pearl's work; he is a leader in what he terms "the causal
+revolution" and this is the second book of his I have read on the subject.
+
+"The Book of Why" is a /popular/ science overview and history of the field
+(particularly it's division from statistics) but the first book of Pearl's I
+read was his textbook "Causation" which was at the cutting edge of the field
+when he first published it. Why read "The Book of Why" when I've already read a
+much more advanced and detailed treatment - especially a /popular/ science
+overview (since finishing my degree I have been too proud to read popular
+mathematics - this is my loss):
+
+1. I just didn't /get it/ when reading "Causation". This is entirely normal when
+   reading a maths textbook but, with hindsight, I also had the wrong
+   expectations about what I was being told. I thought I would learn algorithms
+   that infer causal models from raw data but this is not really what the
+   book is about - it is more about confirming or denying the truth of a model
+   (or candidate set of models) using data. The creation of the candidate models
+   is left up to the domain expertise of the reader.
+2. I wanted to understand causation better but I knew I wouldn't get any further
+   reading "Causation" again; I am much further out from my university studies
+   now and much less practiced at reading that level of textbook.
+
+"The Book of Why" focuses more on the ideas than the mathematical detail which
+makes it easier to understand - although probably harder to implement.
+
+The first new (to me) idea that helps clarify things is what Pearl calls "the
+ladder of causation" with three different rungs corresponding to increased
+levels of sophistication in the kind of questions that can be answered:
+
+1. Correlation - this rung is well understood and is mostly the domain of
+   statistics
+2. Causation - answers causal questions at a population level. E.g. "does
+   smoking cause cancer?" This is true in general but a very different question
+   to "did me smoking cause my cancer?"
+3. Counterfactual - answers causal and what-if questions at the individual
+   level. E.g. "If I stop smoking will I not get cancer?"
+
+Pearl considers the difficulty statisticians had in proving a causal
+relationship between smoking and cancer to be a shameful failure of the
+discipline. If he's right then the inability of statistics as a field to embrace
+new ideas has caused the premature deaths of millions of people.
+
+I have already mentioned the second important idea that I hadn't grasped from
+reading "Causation" - that these techniques are used to validate or invalidate a
+model; not to find a model out of thin air. In some ways this is disappointing;
+I want to be able to have an oracle that will infer causal
+relationships using nothing more than the data I give it but this is not where
+the field it at (yet). With hindsight, I was naive to expect this - if someone
+told me any other statistical method could do this I would be very skeptical. In
+some ways I blame Pearl for this - he is always going on about how
+revolutionary and amazing his methods are which lead me to believe they were
+more than they actually are. Pearl is incredibly restrained compared to most
+people who talk about their amazing new AI for whatever but compared to
+mathematicians I think he blows his own trumpet rather more loudly than normal.
+
+In this way, reading a popular treatment was very helpful because my bullshit
+detector was better attuned to the claims being made.
+
+Enough character assassination - the above comes across rather strongly I'm
+afraid - back to the good stuff. If these methods don't allow you to infer
+causal relationships from raw data then what do they do?
+
+By providing a very clear way of understanding the relationships between a
+causal model and data Pearl shows:
+
+1. How to figure out whether or not you can validate a model given the data you
+   have.
+2. What extra data you'd need to collect to validate a model
+3. If it is possible to combine data from different sources to get a good
+   estimate of a model. For example you might have survey data with a biased
+   sample, and behavioral data that tells you nothing about an important part of
+   your hypothesis. You might be able to combine these two sources together to
+   answer your questions even though each on its own is insufficient.
+
+All of which are useful, time-saving techniques for many analytical tasks. This
+makes me very sure that I want to revisit "Causation" and see if I can do any
+better with it now.
+
+But, another problem I had with "Causation" is not addressed in "The Book of
+Why" at all - I guess it is more of a technical thing and not of interest to a
+general audience. Pearl often talks about two variables being independent and
+this is an important part of how you work your way through a causal diagram. But
+I'm not very clear on how you tell if variables are independent in the first
+place. Or maybe I'm not very sure what "independent" means in this context.
+
+If you have a particular type of relationship in mind then I can understand how
+to check independence. For example if Y is linearly related to X then a
+correlation value of zero would show independence. But I don't see that it
+should be necessary to assume a particular form for the relationship between Y
+and X and I don't understand how to check independence across all possible forms
+for this relationship.
+
+The other problem with this comes from "Big Data" which, if we return to the
+correlation example, makes it quite possible to find very accurate estimates of
+very small correlations. Which makes me wonder if it would be possible to *ever*
+declare to variables independent.
+
+I'm sure the above problems arise out of my ignorance rather than any deep hole
+in the theory - I'm kind of looking forward to the moment when I finally grok it
+and it all makes sense. It might take a while, but hopefully I'll get there in
+the end.
