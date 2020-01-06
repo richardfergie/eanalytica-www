@@ -1,0 +1,61 @@
+---
+title: Five Thoughts on Machine Learning based on page paths
+---
+#+OPTIONS: ^:{}
+
+More and more people are trying to train and apply machine learning models based
+on the pages a user on their site sees. This is often to do some kind of
+segmentation of the users based on the content they consume. In 2019 I've worked
+on a couple of models for this which have ended up with some things in common.
+
+1. Most users navigate the site with a sequence of pageviews. Some might branch
+   out by opening new tabs and returning to old tabs but this is rare. It is
+   tempting to use this sequence to train the model (e.g. with an LSTM layer).
+   This takes much longer to train than a simpler model and the results aren't
+   /that/ much better than what you get by using a "bag of words" type model
+   where you only consider which pages were viewed and ignore the order.
+
+2. For sites (e.g. publishers) with frequently changing content the model will
+   quickly go stale because the pages most users are viewing will fall outside
+   the training set. If you train the model on the data from 2019 and users only
+   look at pages published in 2020 then these will all be outside of what the
+   model was trained on. One way around this problem is to split the URL up into
+   component words. E.g.
+   /brad-pitt-jokes-about-dating-life-jennifer-aniston-reaction would become
+   "brad pitt jokes about dating life jennifer aniston reaction". These words
+   are more likely to occur in future URLs and opens up the possibility for the
+   model to recognise that some people might like articles about "brad",
+   "aniston" and "reaction". This does rely on your site having friendly
+   pagepaths. If they just have id numbers than this won't be helpful.
+
+3. This is another reason why the "bag of words" approach works better than the
+   sequence approach. When the model receives a stream of words representing
+   multiple pageviews we are also expecting it to learn how to group or separate
+   them into the original pagepaths. For example, if the user viewed
+   /pure-moments-at-the-golden-globes-2020 and then
+   /brad-pitt-jokes-about-dating-life-jennifer-aniston-reaction the model would
+   receive "pure moments at the golden globes 2020 brad pitt jokes about dating
+   life jennifer aniston reaction" as the input which does not show where the
+   first pagepath stops and the second one starts. You can add a separator
+   character in some way but you still rely on the model to learn the
+   significance of this. I've tried increasing the number of dimensions of the
+   input so that one dimension is the stream of words within a pagepath and the
+   second is the stream of pagepaths but I couldn't get this to work.
+
+4. By default most tokenisers will strip out characters like "/" which is mostly
+   what you want with the exception of the homepage. A session where the user
+   repeatedly views the homepage might look like "/ / / / / / / / /" on input
+   but will be tokenised to "" (empty string) which is not what you want unless
+   you want this session to be the same as one that viewed zero pages. Replace
+   homepage views with some other unique string e.g. "XXXX" (unless you work in
+   the adult industry).
+
+5. If you use a pre-trained embedding layer (e.g. GloVe) then the choice of
+   string you use for the homepage will matter. But I haven't found pre-trained
+   embeddings that useful. My guess is this is because pagepaths are quite short
+   and that they don't necessarily use language in the way the embedding was
+   trained.
+
+I've really enjoyed working on this type of project in 2019. If you need help
+doing something similar (machine learning to categorise users) please
+[[https://www.eanalytica.com/contact/][get in touch]].
