@@ -1,0 +1,74 @@
+---
+title: 2020 Goals
+---
+I've already written here about how I find [[https://www.eanalytica.com/notes/the-rhythms-of-the-year/][September]] as much of a time for a
+fresh start as January. But this time around I'm feeling optimistic and I have
+several things I to look forward to over the rest of 2020. Does this mean my
+previous post was wrong? In terms of outcomes it must but I can offer the
+following mitigating circumstances:
+
+1. I was unusually quiet over the festive period. In fact I had two full weeks
+   without having to do any client work at all which is the longest holiday I've
+   had for some time.
+2. The weather today is lovely (albeit quite breezy) and I've been outside in
+   the sun
+3. I've had two (!!) new business enquiries this week which is a lot for me and
+   it makes me feel optimistic. Converting them into actual successful business
+   opportunities is another story though...
+
+Because of all this I've been putting some time into thinking what I want to
+achieve in 2020.
+
+*** Sport
+My original rowing goal (set in September) for the season was to be in the top
+final for the single scull at one of the big multilane regattas. Because British
+Rowing have decided not to run a national championship this year this
+effectively means being in the fastest six scullers (or being lucky with the
+draw) at either the Metropolitan regatta or Marlow regatta both of which are at
+Dorney Lake - the London 2012 Olympic venue.
+
+Earlier in December I came 105th in a time trial race on the Thames called
+Sculler's Head. Time trial racing, especially on the tidal Thames, is very
+different from multilane regatta racing and there were definitely a few things
+that went wrong on the day that I know I can fix by the Summer. But the fact of
+the matter is that 105th is a *very* low placing for someone with the above
+ambition so I think I probably just have too much ground to make up between now
+and June.
+
+However, there are plenty of other races worth entering so I want to focus on
+the process of my training for now and then see how the racing season develops.
+I'll know if I've succeeded at this when, once it is over, I can honestly say
+"I've tried hard this year".
+
+*** Adventure
+One of the problems I find with being a solo consultant is that it is difficult
+to take long holidays away from the Internet. My life has been somewhat lacking
+in adventure since going out on my own; a major advantage of being employed is
+that you can go on holiday and not have to worry about work stuff while you are
+away.
+
+This year I'd like to get out for more adventures. These will probably have to
+be of the "mini" variety unless the stars align with client work in the summer.
+*[[https://www.eanalytica.com/contact/][Can you help with this?]]*
+
+I started the year well in this respect by going climbing on New Year's Day.
+Only one (short, easy) route but the first time I've been out like this for a
+long time.
+
+This goal will conflict a bit with rowing. Rowing seems to be a sport where
+success requires you to be very rigid and consistent with training and I don't
+find the training very adventurous at all. So I guess we'll see how this turns
+out.
+
+*** Business
+I have two main goals for business:
+
+1. I am really enjoying my work with Haymarket Automotive on classifying user
+   intent using machine learning. Another client like this would mean I was
+   spending a very large percentage of my time on work that I both find
+   interesting and that allows me to position myself as a trendy domain expert
+   for ML.
+2. I'd like to make some money (any money - even a tiny amount) from something
+   that doesn't amount to just billing hours. I have the skills to make simple
+   SAAS products and something like this would be really cool but most likely
+   this goal will be fulfilled by some kind of "productised" consulting.
