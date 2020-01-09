@@ -11,7 +11,7 @@ jobs:
             - stack-{{ checksum "site.hs" }}-{{ checksum "eanalytica-www.cabal" }}-{{ checksum "stack.yaml" }}
             - stack
       - run: stack setup
-      - run: stack install
+      - run: stack install --flag hakyll:-previewServer  --flag hakyll:-watchServer --flag hakyll:-checkExternal
       - save_cache:
           key: stack-{{ checksum "site.hs" }}-{{ checksum "eanalytica-www.cabal" }}-{{ checksum "stack.yaml" }}
           paths:
