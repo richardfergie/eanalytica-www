@@ -10,15 +10,18 @@ import Text.Jasmine
 import qualified Data.ByteString.Lazy.Char8 as C
 import Hakyll.Web.Pandoc
 import Text.Pandoc.SelfContained
+import Text.Pandoc.Class (runIOorExplode)
 
 --------------------------------------------------------------------------------
+selfContainedPandocCompilerWith :: ReaderOptions -> WriterOptions -> Compiler (Item String)
 selfContainedPandocCompilerWith readerOpts writerOpts = do
   item <- getResourceBody
   rpandoc <- readPandocWith readerOpts item
   let html = (writePandocWith writerOpts rpandoc)
-  html' <- unsafeCompiler $ makeSelfContained writerOpts (itemBody html)
+  html' <- unsafeCompiler $ runIOorExplode $ makeSelfContained {-writerOpts-} (itemBody html)
   return $ item{itemBody=html'}
 
+selfContainedPandocCompiler :: Compiler (Item String)
 selfContainedPandocCompiler = selfContainedPandocCompilerWith defaultHakyllReaderOptions defaultHakyllWriterOptions
 
 cleanDate :: Routes
@@ -203,7 +206,7 @@ main = hakyll $ do
             posts <- recentFirst =<< loadAll pattern
             let paginateCtx = paginateContext notes pageNum
                 title = case pageNum of
-                  1 -> "Notes"
+                  1 -> "Notes?"
                   x -> "Notes - Page "++(show x)
                 ctx = constField "title" title <>
                       listField "posts" (noteCtx <> introField) (return posts) <>
@@ -211,7 +214,7 @@ main = hakyll $ do
                       paginateCtx <>
                       defaultContext
             makeItem ""
-                >>= loadAndApplyTemplate "templates/archive.html" ctx
+                >>= loadAndApplyTemplate "templates/notes.html" ctx
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= relativizeUrls
                 >>= slashUrlsCompiler

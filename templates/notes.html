@@ -1,0 +1,26 @@
+<h1>$title$</h1>
+<p>
+    Posts that are too self-centred, narcissitic, or short for the main archive.
+</p>
+<div class="row">
+$if(previousPageNum)$
+  <div class="prev">
+      <a href="$previousPageUrl$" class="pagination">◀ Newer Entries</a>
+  </div>
+$endif$
+$if(nextPageNum)$
+  <div class="next">
+      <a href="$nextPageUrl$" class="pagination next">Older Entries ▶</a>
+  </div>
+$endif$
+</div>
+$for(posts)$
+<div class="post">
+    <div class="title"><a href="$url$" rel="bookmark" title="Permanent Link to $title$">$title$</a></div>
+    <div style="opacity:0.8;"><small>
+            <i>$date$</i>
+    </small></div>
+    <br>
+    <p>$intro$ <span class="read-on"><a href="$url$">&hellip;</a></span></p>
+</div>
+$endfor$
