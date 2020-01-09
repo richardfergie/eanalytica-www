@@ -51,7 +51,7 @@ flags: {}
 extra-package-dbs: []
 
 nix:
-  enable: true
+  enable: false
   packages: [glpk, pcre, zlib]
 
 # Control whether we use the GHC we find on the path
