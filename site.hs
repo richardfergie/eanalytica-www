@@ -206,7 +206,7 @@ main = hakyll $ do
             posts <- recentFirst =<< loadAll pattern
             let paginateCtx = paginateContext notes pageNum
                 title = case pageNum of
-                  1 -> "Notes?"
+                  1 -> "Notes"
                   x -> "Notes - Page "++(show x)
                 ctx = constField "title" title <>
                       listField "posts" (noteCtx <> introField) (return posts) <>
