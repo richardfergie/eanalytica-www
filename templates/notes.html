@@ -24,3 +24,15 @@ $for(posts)$
     <p>$intro$ <span class="read-on"><a href="$url$">&hellip;</a></span></p>
 </div>
 $endfor$
+<div class="row">
+$if(previousPageNum)$
+  <div class="prev">
+      <a href="$previousPageUrl$" class="pagination">◀ Newer Entries</a>
+  </div>
+$endif$
+$if(nextPageNum)$
+  <div class="next">
+      <a href="$nextPageUrl$" class="pagination next">Older Entries ▶</a>
+  </div>
+$endif$
+</div>
