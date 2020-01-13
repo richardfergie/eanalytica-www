@@ -351,3 +351,7 @@ div.hero input {
 div.hero textarea {
     background: white;
 }
+blockquote {
+    background: lightyellow;
+    font-style: italic;
+}
