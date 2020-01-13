@@ -1,0 +1,120 @@
+---
+title: Links from December
+---
+Here is a list of some of the links that I saved during December.
+
+*** [[https://www.stripepartners.com/our_writing_article/my-ai-versus-the-company-ai/][My AI versus the Company AI]]
+AI has tremendous potential to free knowledge workers from drudgery. But is also
+has the potential to strip away identity and ownership of work as it has done
+for (e.g.) warehouse pickers. And that is before even talking about AI taking
+over people's jobs entirely!
+
+The piece by Stripe Partners looks at the kind of AI tools that knowledge
+workers like working with and how AI can best be positioned as an enabler rather
+than a threat. It was produced as part of a piece of work with Google so I
+expect to see more of these ideas filtering through into Google products in the
+near future - the future is alreay here with things like Gmail's auto replies
+and predictive text.
+
+#+BEGIN_QUOTE
+What we discovered was that people wanted assistance to enhance their core work.
+Importantly, so that they retain agency, so that their skills becomes extended
+and augmented rather than replaced. For example, if your job is to design and
+run a workshop, you might want ideas – but you don't want it to be designed for
+you.
+#+END_QUOTE
+
+*** [[https://onezero.medium.com/why-xhamster-is-so-much-better-at-content-moderation-than-facebook-ec318919b0e4][Why xHamster Is So Much Better at Content Moderation Than Facebook]]
+Compares the moderation procedures and policies of porn sites such as xHamster
+with larger social media sites such as Facebook.
+
+Facebook (and others) argue that regulations which would require them to better
+moderate content posted on their sites would suffocate innovation and their
+industry. The author of this piece points out that there is no shortage of porn
+on the internet yet this is a very heavily regulated industry and pretty much
+all user generated content is reviewed to some extent before being made
+available online.
+
+#+BEGIN_QUOTE
+But as Big Tech argues against even the most minimal acts of oversight, it is
+worth noting that extreme scrutiny placed on the adult industry has not
+eradicated the industry or made it incapable of innovating. What it has done,
+however, is make members of the adult industry cautious and considered about
+enforcing safety measures that Big Tech has long been cavalier about.
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+If a porn site were the subject of an investigation that revealed it had been
+home to millions of images of child abuse content, its parent company probably
+wouldn’t remain in business for much longer. For Facebook, however, a Times
+piece that alleged an epidemic of child abuse on its platform was just a bad
+news day. That’s a stark difference in reaction to the same offense, and one
+that should give us all pause.
+#+END_QUOTE
+
+*** [[https://wellcomecollection.org/articles/Xc6GEBEAACgABJG_][How to play with people who are better than you]]
+An interesting article about which games can be enjoyed by competitive players
+of different skill levels and which types of games are open to modifications to
+enable the same.
+
+#+BEGIN_QUOTE
+Wibbell is a word game where you have to come up with a word containing a
+certain selection of letters. If you succeed, you pick up a card that acts both
+as a point, and as an extra, personal obligation – a letter that you and you
+alone have to include in any future words. This doesn’t mean that weaker players
+are likely to win overall, but it means that as stronger players pick up more
+obligations, the weaker players get a chance to stay involved.
+#+END_QUOTE
+
+I think games are a great way to learn (and remember!) new things but I have
+never included any in my training courses because often there is a very wide
+range of abilities in the course attendants. "Orthogames" aren't necessarily
+suitable for this because everyone on the course is trying to learn the same
+thing so there aren't really orthogonal skills or goals that can be used. But
+using some kind of clever handicap system could work.
+
+*** [[https://jovial-jepsen-cf1904.netlify.com/][A Bayesian model for quick-count in Elections]]
+I love Stan and, in the UK, elections and polling were a very hot topic during
+December!
+
+This link looks at techniques to best predict the election result using the
+results of an exit poll. Which is pretty niche I guess; not many people will
+ever have the need or opportunity to do that.
+
+They use a hierarchical model which considers the location of the polling
+station (e.g. polling stations in the same electoral district are more likely to
+have similar results).
+
+#+BEGIN_QUOTE
+This model estimates have some advantages and some drawbacks in comparison to
+traditional survey sampling estimation methods (in this case, ratio estimation).
+Advantages include a consistent and principled treatment of missing data in
+samples (which is unavoidable in this setting), more consistent behaviour when
+monitoring partial samples as they are recorded during the election process, and
+better interval coverage properties when the sample data has serious missing
+data problems (including biases in observed data from designed samples, which
+also naturally appear in this setting). Drawbacks include a much larger
+computation effort and time to obtain results (in the case of the model
+presented here, around five minutes vs less than seconds), and a considerably
+larger modelling effort which requires extensive checks.
+#+END_QUOTE
+
+I think these drawbacks are true of a lot of "Bayesian" models - especially
+those created/fitted using Stan.
+
+*** [[https://eng.lyft.com/beyond-l2-loss-how-we-experiment-with-loss-functions-at-lyft-51f9303f5d2d][Beyond L2 Loss — How we experiment with loss functions at Lyft]]
+#+BEGIN_QUOTE
+Estimating expected time of arrival (ETA) is crucial to what we do at Lyft.
+Estimates go directly to riders and drivers using our apps, as well as to
+different teams within Lyft. The Pricing team, for example, uses our ETA
+estimates in order to determine the rider’s fare. The Dispatch team uses them to
+find the best matches between drivers and groups of riders.
+#+END_QUOTE
+
+Estimating journey times is very important to Lyft and this post explains some
+of the methods they use in evaluating which loss function gives the best results
+when used with their ML models. When I think about loss functions I'm generally
+thinking about asymmetric losses (e.g. estimating a Lyft pickup time that is
+earlier than the real value is worse for the customer than their Lyft arriving
+early - but I guess this is the other way around for the drivers!) but this post
+focuses on loss functions where loss is always minimised at the mean.
