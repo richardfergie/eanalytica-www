@@ -272,6 +272,7 @@ main = hakyll $ do
          route   idRoute
          compile $ do
            posts <- recentFirst =<< loadAll "posts/*"
+           notes <- recentFirst =<< loadAll "notes/*"
            raw <- (loadAll "raw/*")::(Compiler [Item CopyFile])
            let sitemapCtx = mconcat
                             [ listField "rawentries"
@@ -282,7 +283,7 @@ main = hakyll $ do
                                                       itemIdentifier)) $ return raw
                             , listField "blogentries"
                                         (mapContext (replaceAll "/index.html" (const "/")) postCtx)
-                                        $ return posts
+                                        $ return $ posts++notes
                             , defaultContext
                             ]
            makeItem ""
