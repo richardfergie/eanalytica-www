@@ -164,6 +164,7 @@ main = hakyll $ do
         compile $ pandocCompiler
             >>= saveSnapshot "intro"
             >>= loadAndApplyTemplate "templates/post.html"    postCtx
+            >>= saveSnapshot "feed"
             >>= loadAndApplyTemplate "templates/default.html" postCtx
             >>= relativizeUrls
             >>= slashUrlsCompiler
@@ -290,6 +291,19 @@ main = hakyll $ do
             >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
              >>= slashUrlsCompiler
 
+    -- FIXME: currently links to /index.html
+    create ["blog/rss.xml"] $ do
+      route idRoute
+      compile $ do
+        let feedCtx = postCtx `mappend` bodyField "description"
+        posts <- fmap (take 10) . recentFirst =<<
+                 loadAllSnapshots "posts/*" "feed"
+        renderRss (FeedConfiguration "E-Analytica"
+                                     "Data"
+                                     "Richard Fergie"
+                                     "fergie@eanalytica.com"
+                                     "https://www.eanalytica.com"
+                  ) feedCtx posts
 
     match "templates/*" $ compile templateCompiler
 
