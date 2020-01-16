@@ -1,0 +1,28 @@
+---
+title: Log Analysis
+---
+<div class="container narrow">
+    <h1>Log Analysis</h1>
+    <p>
+        This site is hosted behind Amazon CloudFront. This page visualises the CloudFront logfiles for the last 30 days. It updates at roughly 08:00am GMT each day.
+    </p>
+    <div id="hits-chart"><strong>Hits per day</strong></div>
+    <div id="useragents-chart"><strong>Top User Agents</strong></div>
+    <div id="statuscode-chart"><strong>Status Codes</strong></div>
+    <table id="content-table">
+        <thead>
+            <tr>
+                <th>URL</th>
+                <th>Hits</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crossfilter2/1.5.2/crossfilter.min.js" integrity="sha256-GO6uahEf2Ow2u2Js0pco1esma7ex0f+teVF8JIQFiQs=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js" integrity="sha256-m0QmIsBXcOMiETRmpT3qg2IQ/i0qazJA2miCHzOmS1Y=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dc/3.1.8/dc.min.js" integrity="sha256-of0ppkk8kx6hoZFwjArlspZWjkNdWR/NUbGbQVvWr/c=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dc/3.1.8/dc.min.css" integrity="sha256-JxxmFZJjSBxxAjCludgb7ZMDLq9++jCr5pSVyoQLo2s=" crossorigin="anonymous" />
+<style>
+ .dc-chart g.row text {fill: black;}
+</style>
+<script src="/js/logs.js"></script>

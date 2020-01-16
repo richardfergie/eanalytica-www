@@ -265,6 +265,13 @@ main = hakyll $ do
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= slashUrlsCompiler
 
+    match "logs.html" $ do
+      route $ constRoute "logs/index.html"
+      compile $ do
+        getResourceBody
+          >>= loadAndApplyTemplate "templates/default.html" defaultContext
+          >>= slashUrlsCompiler
+
     match "favicon.ico" $ do
       route   idRoute
       compile copyFileCompiler
