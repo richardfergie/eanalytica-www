@@ -14,7 +14,6 @@ d3.csv("/logs/logs.csv").then(function(data) {
     data.forEach(function(d) {
         d.date = dateFormatParser(d.date)
     })
-    console.log(data)
 
     var xfilter = crossfilter(data);
     var all = xfilter.groupAll();
@@ -26,6 +25,23 @@ d3.csv("/logs/logs.csv").then(function(data) {
     var statusCodeGroup = statusCodeDimension.group()
     var contentDimension = xfilter.dimension(function(d) {return d.url})
     var contentGroup = contentDimension.group()
+
+    function remove_empty_bins(source_group) {
+        return {
+            all:function () {
+                return source_group.all().filter(function(d) {
+                    return d.value != 0;
+                });
+            },
+            top:function(k) {
+                return source_group.top(k).filter(function(d) {
+                    return d.value != 0;
+                })
+            }
+        };
+    }
+
+    nContentGroup = remove_empty_bins(contentGroup)
 
     dailyHitsChart
         .width(chartWidth)
@@ -55,7 +71,7 @@ d3.csv("/logs/logs.csv").then(function(data) {
         .group(statusCodeGroup)
 
     contentTable
-        .dimension(contentGroup)
+        .dimension(nContentGroup)
         .columns([function (d) { return '<a href="'+d.key+'">'+d.key+'</a>' },
                   function (d) { return d.value}
                  ])
