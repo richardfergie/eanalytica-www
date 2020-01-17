@@ -18,7 +18,7 @@ d3.csv("/logs/logs.csv").then(function(data) {
     var xfilter = crossfilter(data);
     var all = xfilter.groupAll();
     var dailyDimension = xfilter.dimension(function(d) {return d.date});
-    var dailyGroup = dailyDimension.group().reduceCount();
+    var dailyGroup = dailyDimension.group();
     var userAgentDimension = xfilter.dimension(function(d) {return d.parsed_ua});
     var userAgentGroup = userAgentDimension.group()
     var statusCodeDimension = xfilter.dimension(function(d) {return d.status});
@@ -43,6 +43,9 @@ d3.csv("/logs/logs.csv").then(function(data) {
 
     nContentGroup = remove_empty_bins(contentGroup)
 
+    var today = new Date()
+    var yesterday = new Date().setDate(today.getDate()-1)
+    var daysago30 = new Date().setDate(today.getDate()-30)
     dailyHitsChart
         .width(chartWidth)
         .height(180)
@@ -50,8 +53,9 @@ d3.csv("/logs/logs.csv").then(function(data) {
         .dimension(dailyDimension)
         .group(dailyGroup)
         .elasticY(true)
+        .xUnits(function(){return 40})
         .centerBar(true)
-        .x(d3.scaleTime([d3.min(data, function(d){return d.date}), d3.max(data, function(d){return d.date})]))
+        .x(d3.scaleTime().domain([daysago30,yesterday]))
 
     userAgentsChart
         .width(chartWidth)
@@ -72,8 +76,8 @@ d3.csv("/logs/logs.csv").then(function(data) {
 
     contentTable
         .dimension(nContentGroup)
-        .columns([function (d) { return '<a href="'+d.key+'">'+d.key+'</a>' },
-                  function (d) { return d.value}
+        .columns([function (d) { return d.key },
+                  function (d) { return d.value }
                  ])
         .sortBy(function (d) { return d.value })
         .order(d3.descending)
