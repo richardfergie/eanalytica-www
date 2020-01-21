@@ -166,7 +166,6 @@ main = hakyll $ do
             >>= loadAndApplyTemplate "templates/post.html"    postCtx
             >>= saveSnapshot "feed"
             >>= loadAndApplyTemplate "templates/default.html" postCtx
-            >>= relativizeUrls
             >>= slashUrlsCompiler
 
     match "notes/*" $ do
