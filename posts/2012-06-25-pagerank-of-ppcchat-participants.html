@@ -15,7 +15,7 @@ title: PageRank of #PPCChat participants
     <p>
 	
 		<figure class="image-wrapper block-level-image">
-			<img src="./files/2012-6-25-2442371176_8e449d0738_b.jpg.jpg"></img>
+			<img src="/files/2012-6-25-2442371176_8e449d0738_b.jpg.jpg"></img>
 			
 		</figure>	
 	
@@ -23,7 +23,7 @@ title: PageRank of #PPCChat participants
 I've been downloading and saving every tweet on the #PPCChat hashtag using the Twitter streaming API. If you're interested in this sort of thing then you should look at my <a title="Python Twitter Streaming API example" href="http://www.ppcanalytica.com/lib/twitterstreaming.py">twitter streaming tweet saver python script</a>. You'll need the <a href="http://pypi.python.org/pypi/tweetstream">tweetstream</a> package but otherwise it should work out of the box; just provide your username and password on the command line.</p><p>6151 tweets later I pulled the data I had and began to do some analysis.</p><p>When looking at a network or community a popular way to figure out who is influential is to use the <a href="http://searchengineland.com/what-is-google-pagerank-a-guide-for-searchers-webmasters-11068">PageRank algorithm</a> which should be familiar as the break through that made Google's organic search so much better than their competitors.</p><p>Luckily for me and my programming skills there is a handy library called <a href="http://igraph.sourceforge.net/">igraph</a> with a nice <a href="http://www.cs.rhul.ac.uk/home/tamas/development/igraph/tutorial/tutorial.html">python interface</a> which would do all the algorithmic heavy lifting for me.</p><h3>The Setup</h3><p>After processing and sanitizing the data a little I was able to create a graph where each vertex is either a participant in #PPCChat or someone mentioned by a participant in #PPCChat. I made an edge from person A to person B whenever person A mentioned person B in a tweet. This means there could be multiple edges between people.</p><p>With 745 participants/mentions and 8488 edges between then visualizing the graph is a bit of a mess:
 	
 		<figure class="image-wrapper block-level-image">
-			<img src="./files/2012-6-25-igraph.png.jpg"></img>
+			<img src="/files/2012-6-25-igraph.png.jpg"></img>
 			
 		</figure>	
 	
