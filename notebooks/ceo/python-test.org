@@ -1,0 +1,469 @@
+# -*- org-confirm-babel-evaluate: nil -*-
+#+STARTUP: inlineimages
+#+OPTIONS: ^:{}
+#+OPTIONS: toc:nil
+#+OPTIONS: num:nil
+
+#+BEGIN_SRC ipython :session :display none :results none
+import IPython
+import tabulate
+
+class OrgFormatter(IPython.core.formatters.BaseFormatter):
+    format_type = IPython.core.formatters.Unicode('text/org')
+    print_method = IPython.core.formatters.ObjectName('_repr_org_')
+
+def pd_dataframe_to_org(df):
+    return tabulate.tabulate(df, headers='keys', tablefmt='orgtbl', showindex='always')
+
+ip = get_ipython()
+ip.display_formatter.formatters['text/org'] = OrgFormatter()
+
+f = ip.display_formatter.formatters['text/org']
+f.for_type_by_name('pandas.core.frame', 'DataFrame', pd_dataframe_to_org)
+#+END_SRC
+
+* Cat Engine Optimisation
+
+Search engines use machine learning to develop the best possible ranking
+algorithm. Then, search engine optimisers (SEOs) pit themselves against this
+hidden algorithm, experimenting as they try to increase the rankings of a site.
+
+Only search engine employees really know which algorithms are used; in this post
+I will look at a known algorithm and then use techniques called "adversarial
+learning" to optimise against it.
+
+Working with a known algorithm is useful because it gives a controlled
+environment for running tests and optimisations. The algorithm we will be using
+is called Inception V3 and we will be using it to rank images of cats.
+
+The post will be in several sections:
+
+1. An introduction to Inception V3 and how we will use it to build the "cat
+   engine"
+2. How to use something called "adversarial learning" to optimise images for the
+   cat engine
+3. The methods in section two require knowing rather a lot about the Inception
+   V3 algorithm. This section will show how to optimise an image whilst treating
+   the algorithm as a "black box" where you don't know how it works internally
+   but only the input/output.
+4. Finally we make things even tougher by making the output of the algorithm
+   more vague so it is harder to tell if any small optimisations are working.
+
+In summary, we start by building a weird toy ranking engine (not going to call
+it a search engine because it doesn't do crawling and doesn't really have
+queries) then we use special knowledge of the algorithm to optimise for it. Then
+we make our optimisation task more realistic by pretending we don't know about
+the internals of the algorithm and finally we pretend the only thing we can
+observe about the algorithm is the ranking output at the end.
+
+All the code used for this investigation is included in the post. You can ignore
+it is python isn't your thing and just read the text. Comments in code blocks
+contain content that is useful for people running the code but there shouldn't
+be any necessary explanations for understanding the "big idea" there.
+
+** Inception V3
+Since 2010 there has been a machine learning competition called [[http://www.image-net.org/challenges/LSVRC/][The ImageNet
+Large Scale Visual Recognition Challenge (ILSVRC)]] where competitors try to
+correctly classify images into 1000 different categories. In 2015 Google
+performed very well in this competition with their deep learning algorithm
+called Inception V3.
+
+Inception V3 is a neural network and Google have made both the shape of the
+network and the network weights available for anyone to use to classify their
+own images. This means you can run the algorithm on your own computer, against
+your own images and have full visibility on all the computation it does. You can
+even alter it or train it further if that is what you want to do.
+
+The code block below loads the Inception V3 algorithm, provides some functions
+to load and display data, and the classifies an image of a cat.
+
+#+begin_src ipython :session :exports both :results raw drawer
+# I have multiple keras backends installed
+# Make sure that the tensorflow one is being used for this
+# Must be done before keras libraries are loaded
+import os
+os.environ["KERAS_BACKEND"] = "tensorflow"
+
+from keras.preprocessing.image import load_img, save_img, img_to_array
+import numpy as np
+import scipy
+
+## inception_v3 is the pre-trained neural network
+from keras.applications import inception_v3
+from keras import backend as K
+
+def preprocess_image(image_path):
+    # Util function to open, resize and format pictures
+    # into appropriate tensors.
+    img = load_img(image_path, target_size=(299,299))
+    img = img_to_array(img)
+    img = np.expand_dims(img, axis=0)
+    img = inception_v3.preprocess_input(img)
+    return img
+
+
+def deprocess_image(y):
+    # Util function to convert a tensor into a valid image.
+    x = np.copy(y)
+    if K.image_data_format() == 'channels_first':
+        x = x.reshape((3, x.shape[2], x.shape[3]))
+        x = x.transpose((1, 2, 0))
+    else:
+        x = x.reshape((x.shape[1], x.shape[2], 3))
+    x /= 2.
+    x += 0.5
+    x *= 255.
+    x = np.clip(x, 0, 255).astype('uint8')
+    return x
+
+# We won't be training so set learning phase to 0
+K.set_learning_phase(0)
+
+# Load the InceptionV3 model
+# The model will be loaded with pre-trained ImageNet weights.
+model = inception_v3.InceptionV3(weights='imagenet',
+                                 include_top=True)
+
+# Now load and classify an image
+original_img = preprocess_image('lazycat.jpg')
+
+import matplotlib.pyplot as plt
+%matplotlib inline
+top_predicted_label = inception_v3.decode_predictions(model.predict(original_img), top=1)[0][0]
+plt.title('Predicted Label: %s (%f)' % (top_predicted_label[1], top_predicted_label[2]))
+# Add semicolon at the end of this line to prevent matplotlib
+# adding a description
+# https://stackoverflow.com/a/38971053
+plt.imshow(deprocess_image(original_img));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[2]:
+[[file:./obipy-resources/iyWC32.png]]
+:END:
+
+The Inception V3 algorithm classifies our image as an "Egyptian Cat" with 49%
+certainty.
+
+We can see what other classifications the algorithm thinks are possible in the
+table below.
+
+#+begin_src ipython :session :exports both :display text/org :results table
+import pandas as pd
+
+preds = model.predict(original_img)
+result = inception_v3.decode_predictions(preds,
+                                         top=10)
+pd.DataFrame(result[0])
+#+end_src
+
+#+RESULTS:
+| # Out[50]: |           |                   |            |   |
+|            | 0         | 1                 |          2 |   |
+|------------+-----------+-------------------+------------+---|
+|          0 | n02124075 | Egyptian_cat      |   0.488812 |   |
+|          1 | n02123159 | tiger_cat         |   0.096307 |   |
+|          2 | n02123045 | tabby             |  0.0924525 |   |
+|          3 | n02123394 | Persian_cat       |  0.0703125 |   |
+|          4 | n04399382 | teddy             | 0.00825767 |   |
+|          5 | n04344873 | studio_couch      | 0.00726824 |   |
+|          6 | n03793489 | mouse             | 0.00718327 |   |
+|          7 | n04152593 | screen            |  0.0058089 |   |
+|          8 | n03085013 | computer_keyboard | 0.00459059 |   |
+|          9 | n02123597 | Siamese_cat       | 0.00341954 |   |
+
+Egyptian cat is the most likely but there are other types of cat (e.g. tabby,
+siamese) that are also possibilities. We can add all these up to get the "cat
+score" for an image.
+
+#+begin_src ipython :session :exports both :results raw drawer
+def cat_score(preds):
+   # See https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a for
+   # a mapping of class numbers to names
+   tabby = preds[0][281] #281 = tabby cat
+   tiger = preds[0][282]
+   persian = preds[0][283]
+   siamese = preds[0][284]
+   egyptian = preds[0][285]
+   total = tabby + tiger + persian + siamese + egyptian
+   return(total)
+
+plt.title('Cat Score: %f' % (cat_score(preds)))
+plt.imshow(deprocess_image(original_img));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[16]:
+[[file:./obipy-resources/52KaqC.png]]
+:END:
+
+The maximum possible cat score is one. This cat scores 0.75.
+
+We can use the cat score to rank images of cats (or of anything!) based on how
+cat like Inception V3 thinks they are.
+
+I just happen to have ten thousand cat images downloaded from the internet (I'm
+not joking about this). We can rank then using the cat score and see which are
+the most and least cat like images.
+
+#+begin_src ipython :session :exports both :results raw drawer
+import glob
+import pickle
+import os.path
+
+# Cache the results because this takes a while.
+# If the cache file exists then just use this.
+if os.path.isfile("cat_probs.pkl"):
+    f = open("cat_probs.pkl",'rb')
+    cat_probs = pickle.load(f)
+    f.close()
+else:
+    files = glob.glob("CAT_*/*.jpg")
+    cat_probs = []
+    for f in files:
+        img = preprocess_image(f)
+        preds = model.predict(img)
+        score = cat_score(preds)
+        cat_probs.append({'file':f,
+                          'total': score
+                         })
+    f = open("cat_probs.pkl",'wb')
+    pickle.dump(cat_probs,f)
+    f.close()
+
+# Sort the results
+cat_probs = sorted(cat_probs,
+                   key=lambda k: k['total'],
+                   reverse=True)
+
+top = cat_probs[0]
+bottom = cat_probs[-1]
+
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].set_title('Most cat like: %s' % (top['total']))
+axs[0].imshow(deprocess_image(preprocess_image(top['file'])))
+axs[1].set_title('Least cat like: %s' % (bottom['total']))
+axs[1].imshow(deprocess_image(preprocess_image(bottom['file'])))
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[23]:
+: <matplotlib.image.AxesImage at 0x7f19eaea1590>
+[[file:./obipy-resources/pD5vkN.png]]
+:END:
+
+Here are the top ten most cat like cats:
+
+#+begin_src ipython :session :exports both :results raw drawer
+fig, axs= plt.subplots(5,2, figsize=(8,10))
+for i,ax in enumerate(fig.axes):
+  cat = cat_probs[i]
+  ax.get_xaxis().set_visible(False)
+  ax.get_yaxis().set_visible(False)
+  ax.set_title("Rank %s. Score %f" % (i+1,cat['total']))
+  ax.imshow(deprocess_image(preprocess_image(cat['file'])));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[38]:
+[[file:./obipy-resources/Hzgnj8.png]]
+:END:
+
+And the bottom ten in the rankings:
+
+#+begin_src ipython :session :exports both :results raw drawer
+ncats = len(cat_probs)
+fig, axs= plt.subplots(5,2, figsize=(8,10))
+for i,ax in enumerate(fig.axes):
+  catix = ncats - i -1
+  cat = cat_probs[catix]
+  ax.get_xaxis().set_visible(False)
+  ax.get_yaxis().set_visible(False)
+  ax.set_title("Rank %s. Score %f" % (catix+1,cat['total']))
+  ax.imshow(deprocess_image(preprocess_image(cat['file'])));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[40]:
+[[file:./obipy-resources/NTfslN.png]]
+:END:
+
+So this is the cat engine - give it an image of a cat and it will give it a
+score which can be ranked against the images of the other ten thousand cats in
+the index.
+
+In the next section we will look at optimising a cat image to improve the cat
+score so that it ranks higher in the cat engine.
+
+** Adversarial Learning
+#+BEGIN_QUOTE
+[[https://en.wikipedia.org/wiki/Adversarial_machine_learning][Adversarial machine learning]] is a technique employed in the field of machine
+learning which attempts to fool models through malicious input. This
+technique can be applied for a variety of reasons, the most common being to
+attack or cause a malfunction in standard machine learning models.
+#+END_QUOTE
+
+Experts in adversarial learning use machine learning to trick other machine
+learning algorithms into making mistakes like misclassifying a picture of a cat
+as something else. This isn't very interesting if the picture *is* of something
+else but it is possible to find adversarial examples that are obviously one
+thing to a human but look like something else to the algorithm.
+
+To explain how to generate adversarial images we are first going to have to take
+a little dive into mathematics.
+
+*** Gradients of an image?
+Before being sent to the algorithm all our images are scaled to 300x300 pixels.
+And each pixel has three values; one each for red, green and blue.
+
+So, to a computer, each image is just a point in a 300x300x3=2700 dimension
+space.
+
+And then Inception V3 is just a function from a 2700 dimension input to a 1000
+dimension output (because it predicts for 1000 classes).
+
+Then when turn the 1000 dimension output into a single number (1 dimension) with
+our cat_scores function that calculates the score for an image.
+
+We can use calculus to differentiate the Inception V3 function which gives us
+the gradient (or slope) at a given point. Which tells us which direction to go
+to increase or decrease the output. This tells us which pixels to change in an
+image in order to make it more or less like a particular class.
+
+This lets us use a machine learning method called "gradient descent" where we
+constantly move "downhill" to find the minimum of a function.
+
+Heres how to set this up in python:
+
+#+begin_src ipython :session :exports both :results raw drawer
+from keras import losses
+
+# The shape of the input
+image_shape = model.input
+
+# Define the shape of the target
+# Inception V3 has 1000 classes
+target_class = K.placeholder(shape=(1,1000))
+
+# Our loss is the crossentropy between the predicted class of the
+# output and the target class
+adversarial_loss = losses.categorical_crossentropy(target_class, model.output)
+
+# Keras automagically calculates the gradients
+grads = K.gradients(adversarial_loss, image_shape)[0]
+
+# Clip the grads to prevent blowup
+grads /= K.maximum(K.mean(K.abs(grads)), K.epsilon())
+
+# Define the computation graph in keras
+outputs = [adversarial_loss, grads]
+fetch_loss_and_grads = K.function([image_shape,target_class], outputs)
+
+# cls is the target class
+def eval_loss_and_grads(x,cls, loss_func):
+    outs = loss_func([x,cls])
+    loss_value = outs[0]
+    grad_values = outs[1]
+    return loss_value, grad_values
+
+# then we do gradient descent to minimise the loss
+def gradient_descent(x, iterations, step, cls=None, max_loss=None, loss_func=None):
+    for i in range(iterations):
+        loss_value, grad_values = eval_loss_and_grads(x, cls, loss_func)
+        if max_loss is not None and loss_value > max_loss:
+            break
+        x -= step * grad_values
+    return x
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[59]:
+:END:
+
+*** Cat to Aircraft Carrier
+Let's take our original cat image and then change it to make it classify as
+something else.
+
+#+begin_src ipython :session :exports both :results raw drawer
+def optimise_image(input_path,
+                   target,
+                   iterations = 10,
+                   step = 0.01,
+                   max_loss = 10
+                  ):
+    # Now do the gradient descent
+    original_img = preprocess_image(input_path)
+    img_copy = np.copy(original_img)
+    newimg = gradient_descent(img_copy,
+                              iterations=iterations,
+                              step=step,
+                              max_loss=max_loss,
+                              loss_func = fetch_loss_and_grads,
+                              cls = target
+                             )
+    f, axs= plt.subplots(1,2, figsize=(8,10))
+    top_predicted_label = inception_v3.decode_predictions(model.predict(original_img), top=1)[0][0]
+    axs[0].set_title('Predicted Label: %s (%.3f)' % (top_predicted_label[1], top_predicted_label[2]))
+    axs[0].imshow(deprocess_image(original_img))
+    top_predicted_label = inception_v3.decode_predictions(model.predict(newimg), top=1)[0][0]
+    axs[1].set_title('Predicted Label: %s (%.3f)' % (top_predicted_label[1], top_predicted_label[2]))
+    axs[1].imshow(deprocess_image(newimg))
+
+aircraft_carrier = np.zeros(shape=(1,1000))
+aircraft_carrier[0,403] = 1.
+
+optimise_image('lazycat.jpg', aircraft_carrier, iterations=1000)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[61]:
+[[file:./obipy-resources/zGbWcj.png]]
+:END:
+
+After 1000 iterations of gradient descent our cat image looks a little bit fuzzy
+to the human eye but to the algorithm it looks like an aircraft carrier with
+very high confidence (1.00 out of 1.00!).
+
+*** Cat to a "better" cat
+We can use the same idea to take an image of a cat and make it more cat like so
+that it ranks higher in our ranking engine.
+
+Let's do it with the bottom ranked image:
+
+#+begin_src ipython :session :exports both :results raw drawer
+egyptian_cat = np.zeros(shape=(1,1000))
+egyptian_cat[0,285] = 1
+
+optimise_image(bottom['file'],
+               egyptian_cat,
+               iterations=100,
+               max_loss=None)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[62]:
+[[file:./obipy-resources/Addcag.png]]
+:END:
+
+Perfect! From the bottom ranked image in my cat picture collection to the top!
+If only real life search engine optimisation was so easy!
+
+One of the reasons why real life is not this easy is that in real life people
+don't have access to the internals of the algorithm they are optimising for. So
+they can't calculate the gradients and they don't know which are the optimal
+changes to make to the image.
+
+Does this mean there is nothing we can do? Of course not! We can still improve
+an image (in the eyes of the algorithm) even without knowing anything about the
+algorithm internals - we only need to know the input image and the score the
+algorithm gives it. We can treat the algorithm as a total black box!
+
+** Optimising a black box
