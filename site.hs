@@ -158,6 +158,10 @@ main = hakyll $ do
     match "google49c11d79480ceef2.html" $ do
       route idRoute
       compile copyFileCompiler
+      
+    match "robots.txt" $ do
+      route idRoute
+      compile copyFileCompiler
 
     match "posts/*" $ do
         route blogRoute
