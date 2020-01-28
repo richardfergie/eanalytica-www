@@ -4,7 +4,7 @@
 #+OPTIONS: toc:nil
 #+OPTIONS: num:nil
 
-#+BEGIN_SRC ipython :session :display none :results none
+#+BEGIN_SRC ipython :session :exports none :display none :results none
 import IPython
 import tabulate
 
@@ -338,7 +338,8 @@ image in order to make it more or less like a particular class.
 This lets us use a machine learning method called "gradient descent" where we
 constantly move "downhill" to find the minimum of a function.
 
-Heres how to set this up in python:
+Luckily for us, machine learning systems like tensorflow and keras make finding
+gradients and doing gradient descent (relatively) simple.
 
 #+begin_src ipython :session :exports both :results raw drawer
 from keras import losses
@@ -466,4 +467,407 @@ an image (in the eyes of the algorithm) even without knowing anything about the
 algorithm internals - we only need to know the input image and the score the
 algorithm gives it. We can treat the algorithm as a total black box!
 
-** Optimising a black box
+** Optimising against a black box
+#+BEGIN_QUOTE
+In science, computing, and engineering, a [[https://en.wikipedia.org/wiki/Black_box][black box]] is a device, system or
+object which can be viewed in terms of its inputs and outputs without any
+knowledge of its internal workings. Its implementation is "opaque" (black).
+#+END_QUOTE
+
+For the cat engine the input is an image and the output is the cat score. The
+"black box" is the Inception V3 neural network that calculates the score; we are
+going to pretend that we don't know how it does this.
+
+We can feed an image into the algorithm and see the score but that is all we
+know. We aren't going to use the gradient to figure out which changes to the
+image will be most beneficial to us so the tricky part of the challenge is
+figuring out how to change the image.
+
+As mentioned earlier, there are 2700 different things we could change and the
+combination of these changes adds up to a lot of potential images. Far more than
+we could check one at a time. if we could check every possible image I guess we
+could also just copy whatever is the highest scoring image.
+
+Let's consider a much smaller search space. What if we only changed one pixel?
+How much difference to the score could that make?
+
+#+begin_src ipython :session :exports both :results raw drawer
+# Modified from https://github.com/Hyperparticle/one-pixel-attack-keras/blob/master/1_one-pixel-attack-cifar10.ipynb
+def perturb_image(xs, old_img):
+    img = np.copy(old_img)
+    # If this function is passed just one perturbation vector,
+    # pack it in a list to keep the computation the same
+    if xs.ndim < 2:
+        xs = np.array([xs])
+
+    # Copy the image n == len(xs) times so that we can
+    # create n new perturbed images
+    tile = [len(xs)] + [1]*(xs.ndim+1)
+    imgs = np.tile(img, tile)
+
+    # Make sure to floor the members of xs as int types
+    xs = xs.astype(int)
+
+    for x,img in zip(xs, imgs):
+        # Split x into an array of 5-tuples (perturbation pixels)
+        # i.e., [[x,y,r,g,b], ...]
+        pixels = np.split(x, len(x) // 5)
+        for pixel in pixels:
+            # At each pixel's x,y position, assign its rgb value
+            x_pos, y_pos, *rgb = pixel
+            img[x_pos, y_pos] = rgb
+
+    return imgs
+
+original_img = preprocess_image(bottom['file'])
+old_preds = model.predict(original_img)
+old_score = cat_score(old_preds)
+
+pixel = np.array([150, 150, 0, 0, 255]) # pixel = x,y,r,g,b
+image_perturbed = perturb_image(pixel, original_img)
+new_preds = model.predict(image_perturbed)
+new_score = cat_score(new_preds)
+
+
+import matplotlib.patches as patches
+
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].set_title('Old Score: %f' % old_score)
+axs[0].add_patch(patches.Rectangle((140,140),20,20,linewidth=1,edgecolor='r',facecolor='none'))
+axs[1].set_xlim(140,160)
+axs[1].set_ylim(160,140)
+axs[1].set_title('New Score: %f' % new_score)
+axs[0].imshow(deprocess_image(image_perturbed))
+axs[1].imshow(deprocess_image(image_perturbed));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[88]:
+: <matplotlib.image.AxesImage at 0x7f19d939f8d0>
+[[file:./obipy-resources/9hXseA.png]]
+:END:
+
+#+begin_src ipython :session :exports both :results raw drawer
+pixel = np.array([150, 150, 0, 255, 0]) # pixel = x,y,r,g,b
+image_perturbed = perturb_image(pixel, original_img)
+new_preds = model.predict(image_perturbed)
+new_score = cat_score(new_preds)
+
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].set_title('Old Score: %f' % old_score)
+axs[0].add_patch(patches.Rectangle((140,140),20,20,linewidth=1,edgecolor='r',facecolor='none'))
+axs[1].set_xlim(140,160)
+axs[1].set_ylim(160,140)
+axs[1].set_title('New Score: %f' % new_score)
+axs[0].imshow(deprocess_image(image_perturbed))
+axs[1].imshow(deprocess_image(image_perturbed));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[89]:
+: <matplotlib.image.AxesImage at 0x7f19ce6353d0>
+[[file:./obipy-resources/hBodZV.png]]
+:END:
+
+#+begin_src ipython :session :exports both :results raw drawer
+pixel = np.array([150, 150, 255, 0, 0]) # pixel = x,y,r,g,b
+image_perturbed = perturb_image(pixel, original_img)
+new_preds = model.predict(image_perturbed)
+new_score = cat_score(new_preds)
+
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].set_title('Old Score: %f' % old_score)
+axs[0].add_patch(patches.Rectangle((140,140),20,20,linewidth=1,edgecolor='r',facecolor='none'))
+axs[1].set_xlim(140,160)
+axs[1].set_ylim(160,140)
+axs[1].set_title('New Score: %f' % new_score)
+axs[0].imshow(deprocess_image(image_perturbed))
+axs[1].imshow(deprocess_image(image_perturbed));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[90]:
+: <matplotlib.image.AxesImage at 0x7f19ce564910>
+[[file:./obipy-resources/Bqy1oL.png]]
+:END:
+
+Changing just one pixel in the centre of the image between red, green, and blue
+can lead to quite a big change in the cat score. This indicates two things:
+
+1. That the neural network is not really "seeing" things in the way that a
+   person does
+2. That changing just one pixel might be enough to make big improvements in the
+   cat score. This is very important because it reduces the size of the search
+   space considerably.
+
+"One pixel attacks" are studied in adversarial learning where people try to
+change one pixel of an image in order for it to get wrongly classified. There is
+a good example of the code for this via [[https://github.com/Hyperparticle/one-pixel-attack-keras/blob/master/1_one-pixel-attack-cifar10.ipynb][Dan Kondratyuk on Github]] whom I have
+borrowed from for these examples.
+
+The trick here is not to pick a specific pixel and then optimise the colour (as
+in the examples above) but to change different pixels and see how this
+influences the score. When a few different pixels/colours have been tested the
+results can be combined using a genetic algorithm called [[https://en.wikipedia.org/wiki/Differential_evolution]["differential
+evolution"]]. I'm not going to go into depth here about why this works because I
+don't fully understand it myself; I kind of get why, in general, combining two
+good solutions to an optimisation problem might lead to another good solution. I
+am at a bit of a loss how this is meant to work with pixels on opposite sides of
+an image.
+
+Luckily we don't need perfect understanding because SciPy has an implementation
+of the differential evolution algorithm so all we need to do is prepare some
+functions and link them all together.
+
+#+begin_src ipython :session :exports both :results raw drawer
+def get_new_score(xs, img, get_score, model):
+    # Perturb the image with the given pixel(s) x and get the prediction of the model
+    imgs_perturbed = perturb_image(xs, img)
+    predictions = model.predict(imgs_perturbed)
+    score = get_score(predictions)
+    # Return 1-score because we need something to minimise
+    return 1 - score
+
+def attack_success(x, img, get_score, threshold, model, verbose=False):
+    # Perturb the image with the given pixel(s) and get the prediction of the model
+    attack_image = perturb_image(x, img)
+    preds = model.predict(attack_image)
+    score = get_score(preds)
+    # If the prediction is what we want (misclassification or
+    # targeted classification), return True
+    if verbose:
+        print('Score:', score)
+    if (score>threshold):
+        return True
+    # NOTE: return None otherwise (not False), due to how Scipy handles its
+    # callback function
+
+from scipy.optimize import differential_evolution
+
+def attack(img, model, threshold, pixel_count=1,
+           maxiter=75, popsize=400, verbose=False):
+
+    # Define bounds for a flat vector of x,y,r,g,b values
+    # For more pixels, repeat this layout
+    bounds = [(0,299), (0,299), (0,255), (0,255), (0,255)] * pixel_count
+
+    # Population multiplier, in terms of the size of the perturbation vector x
+    popmul = max(1, popsize // len(bounds))
+
+    # Format the predict/callback functions for the differential evolution algorithm
+    def predict_fn(xs):
+        return get_new_score(xs, img, cat_score, model)
+
+    def callback_fn(x, convergence):
+        return attack_success(x, img, cat_score, threshold, model,verbose)
+
+    # Call Scipy's Implementation of Differential Evolution
+    attack_result = differential_evolution(
+        predict_fn, bounds, maxiter=maxiter, popsize=popmul,
+        recombination=1, atol=-1, callback=callback_fn, polish=False)
+
+    #Calculate some useful statistics to return from this function
+    attack_image = perturb_image(attack_result.x, img)
+    old_preds = model.predict(img)
+    old_score = cat_score(old_preds)
+    new_preds = model.predict(attack_image)
+    new_score = cat_score(new_preds)
+
+    return {'attack': attack_result,
+            'attacked_image': attack_image[0],
+            'original_image': img,
+            'original_score': old_score,
+            'new_score': new_score,
+            'improvement': new_score-old_score
+           }
+
+
+original_img = preprocess_image(bottom['file'])
+
+# This takes a while to run so cache result
+if os.path.isfile("one_pixel_results.pkl"):
+    f = open("one_pixel_results.pkl",'rb')
+    result = pickle.load(f)
+    f.close()
+else:
+    result = attack(original_img, model, 0.9, pixel_count=1, verbose=False)
+    f = open("one_pixel_results.pkl",'wb')
+    pickle.dump(result,f)
+    f.close()
+
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].set_title('Old Score: (%.3f)' % (result['original_score']))
+axs[0].imshow(deprocess_image(result['original_image']))
+axs[1].set_title('New Score: (%.3f)' % (result['new_score']))
+axs[1].imshow(deprocess_image(np.array([result['attacked_image']])));
+#+end_src
+
+#+RESULTS[9fbadad316511e36680d855034d19d07f3076cc6]:
+:RESULTS:
+# Out[147]:
+[[file:./obipy-resources/x1BHgM.png]]
+:END:
+
+These look practically identical (which they are, only a single pixel is
+different!) but if we zoom in we can see the change.
+
+#+begin_src ipython :session :exports both :results raw drawer
+pixel = result['attack'].x
+
+import math
+
+attack_x = math.floor(pixel[1])
+attack_y = math.floor(pixel[0])
+
+x = deprocess_image(np.array([result['attacked_image']]))
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].add_patch(patches.Rectangle((attack_x-15,attack_y-15),30,30,linewidth=1,edgecolor='r',facecolor='none'))
+axs[1].set_xlim(attack_x-15,attack_x+15)
+axs[1].set_ylim(attack_y+15,attack_y-15)
+axs[0].imshow(x)
+axs[1].imshow(x);
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[129]:
+[[file:./obipy-resources/6OLEO2.png]]
+:END:
+
+We have found a single pixel that can increase the cat score from 0 to 0.782.
+This is enough to improve the ranking from 9997 to 4439 which is quite a lot. It
+would be totally useless in terms of search traffic (still on page 440!) but
+remember that we were starting with a /terrible/ image of a cat to begin with
+and that we have only changed one pixel.
+
+There is one more step we can take to make cat engine optimisation slightly more
+like real search engine optimisation. For the above image we treated the ranking
+algorithm like a black box with the image as input and the cat score as output.
+This is a bit unrealistic because no one sees actual search engine scores;
+instead you can only see where your pages rank relative to all the others.
+
+This is an important distinction because there might be a big gap in score
+between your page and the page ranked above. You could be making improvements
+for some time before you observe a change in rankings.
+
+** Optimising against a blacker box
+To see if we can optimise with this new constraint we just need to change a few
+of the functions we use to configure the differential evolution algorithm so
+that it only receives feedback on changes in ranking rather than changes in
+score.
+
+#+begin_src ipython :session :exports both :results raw drawer
+
+def get_new_score(xs, img, model):
+    # Perturb the image with the given pixel(s) x and get the prediction of the model
+    imgs_perturbed = perturb_image(xs, img)
+    predictions = model.predict(imgs_perturbed)
+    score = cat_score(predictions)
+    rank = sum([score < x['total'] for x in cat_probs]) + 1
+    return rank
+
+def attack_success(x, img, target_rank, model, verbose=False):
+    # Perturb the image with the given pixel(s) and get the prediction of the model
+    attack_image = perturb_image(x, img)
+    preds = model.predict(attack_image)
+    score = cat_score(preds)
+    rank = sum([score < x['total'] for x in cat_probs])
+    if verbose:
+        print('Score:', score)
+    if (rank<target_rank):
+        return True
+    # NOTE: return None otherwise (not False), due to how Scipy handles its
+    # callback function
+
+from scipy.optimize import differential_evolution
+
+def attack(img, model, target_rank, pixel_count=1,
+           maxiter=75, popsize=400, verbose=False):
+
+    # Define bounds for a flat vector of x,y,r,g,b values
+    # For more pixels, repeat this layout
+    bounds = [(0,299), (0,299), (0,255), (0,255), (0,255)] * pixel_count
+
+    # Population multiplier, in terms of the size of the perturbation vector x
+    popmul = max(1, popsize // len(bounds))
+
+    # Format the predict/callback functions for the differential evolution algorithm
+    def predict_fn(xs):
+        return get_new_score(xs, img, model)
+
+    def callback_fn(x, convergence):
+        return attack_success(x, img, target_rank, model,verbose)
+
+    # Call Scipy's Implementation of Differential Evolution
+    attack_result = differential_evolution(
+        predict_fn, bounds, maxiter=maxiter, popsize=popmul,
+        recombination=1, atol=-1, callback=callback_fn, polish=False)
+
+    #Calculate some useful statistics to return from this function
+    attack_image = perturb_image(attack_result.x, img)
+    old_preds = model.predict(img)
+    old_score = cat_score(old_preds)
+    old_rank = sum([old_score < x['total'] for x in cat_probs])
+    new_preds = model.predict(attack_image)
+    new_score = cat_score(new_preds)
+    new_rank = sum([new_score < x['total'] for x in cat_probs])
+
+    return {'attack': attack_result,
+            'attacked_image': attack_image[0],
+            'original_image': img,
+            'original_score': old_rank,
+            'new_score': new_rank,
+            'improvement': new_score-old_score
+           }
+
+
+original_img = preprocess_image(bottom['file'])
+
+if os.path.isfile("one_pixel_rank_results.pkl"):
+    f = open("one_pixel_rank_results.pkl",'rb')
+    result = pickle.load(f)
+    f.close()
+else:
+    result = attack(original_img, model, 10, pixel_count=1, verbose=False)
+    f = open("one_pixel_rank_results.pkl",'wb')
+    pickle.dump(result,f)
+    f.close()
+
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].set_title('Old Rank: (%.f)' % (result['original_score']))
+axs[0].imshow(deprocess_image(result['original_image']))
+axs[1].set_title('New Rank: (%.f)' % (result['new_score']))
+axs[1].imshow(deprocess_image(np.array([result['attacked_image']])));
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[184]:
+[[file:./obipy-resources/0Y5bpf.png]]
+:END:
+
+#+begin_src ipython :session :exports both :results raw drawer
+pixel = result['attack'].x
+
+import math
+
+attack_x = math.floor(pixel[1])
+attack_y = math.floor(pixel[0])
+
+x = deprocess_image(np.array([result['attacked_image']]))
+_, axs= plt.subplots(1,2, figsize=(8,10))
+axs[0].add_patch(patches.Rectangle((attack_x-15,attack_y-15),30,30,linewidth=1,edgecolor='r',facecolor='none'))
+axs[1].set_xlim(attack_x-15,attack_x+15)
+axs[1].set_ylim(attack_y+15,attack_y-15)
+axs[0].imshow(x)
+axs[1].imshow(x);
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# Out[186]:
+[[file:./obipy-resources/T5jdds.png]]
+:END:
