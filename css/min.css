@@ -321,10 +321,11 @@ div.next {
     padding-left: 0.2em;
     padding-right: 0.2em;
 }
+/*
 .nav {
     padding-bottom: 5px;
 }
-
+*/
 .hero {
     background: #eee;
     padding: 20px;
@@ -354,4 +355,22 @@ div.hero textarea {
 blockquote {
     background: lightyellow;
     font-style: italic;
+}
+.navbar button.btn-close.btn-sm {
+	  padding-top: 4px;
+	  margin-top: -49px;
+}
+div.herogrid {
+    display:grid;
+    grid-template-columns: max-content max-content;
+    grid-gap:5px;
+}
+div.herogrid label {
+    text-align: right;
+}
+div.herogrid input{
+    box-sizing:border-box;
+}
+div.herogrid textarea{
+    box-sizing:border-box;
 }
