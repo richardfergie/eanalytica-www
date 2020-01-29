@@ -1,0 +1,1238 @@
+---
+title: "CEO: Cat Engine Optimisation"
+---
+<style>
+ pre.src {
+     display: none;
+ }
+</style>
+<div id="outline-container-orgc5875e6" class="outline-2">
+<div class="outline-text-2" id="text-orgc5875e6">
+<p>
+Search engines use machine learning to develop the best possible ranking
+algorithm. Then, search engine optimisers (SEOs) pit themselves against this
+hidden algorithm, experimenting as they try to increase the rankings of a site.
+</p>
+
+<p>
+Only search engine employees really know which algorithms are used; in this post
+I will look at a known algorithm and then use techniques called "adversarial
+learning" to optimise against it.
+</p>
+
+<p>
+Working with a known algorithm is useful because it gives a controlled
+environment for running tests and optimisations. The algorithm we will be using
+is called Inception V3 and we will be using it to rank images of cats.
+</p>
+
+<p>
+The post will be in several sections:
+</p>
+
+<ol class="org-ol">
+<li>An introduction to Inception V3 and how we will use it to build the "cat
+engine"</li>
+<li>How to use something called "adversarial learning" to optimise images for the
+cat engine</li>
+<li>The methods in section two require knowing rather a lot about the Inception
+V3 algorithm. This section will show how to optimise an image whilst treating
+the algorithm as a "black box" where you don't know how it works internally
+but only the input/output.</li>
+<li>Finally we make things even tougher by making the output of the algorithm
+more vague so it is harder to tell if any small optimisations are working.</li>
+</ol>
+
+<p>
+In summary, we start by building a weird toy ranking engine (not going to call
+it a search engine because it doesn't do crawling and doesn't really have
+queries) then we use special knowledge of the algorithm to optimise for it. Then
+we make our optimisation task more realistic by pretending we don't know about
+the internals of the algorithm and finally we pretend the only thing we can
+observe about the algorithm is the ranking output at the end.
+</p>
+
+<p>
+All the code used for this investigation is included in the post. You can ignore
+    it if python isn't your thing and just read the text.
+</p>
+<button class="btn btn-a btn-sm smooth allcode">Show all code</button>
+<p>
+Comments in code blocks contain content that is useful for people running the code but there shouldn't
+be any necessary explanations for understanding the "big idea" there.
+</p>
+</div>
+
+<div id="outline-container-orgefb4613" class="outline-3">
+<h3 id="orgefb4613">Inception V3</h3>
+<div class="outline-text-3" id="text-orgefb4613">
+<p>
+Since 2010 there has been a machine learning competition called <a href="http://www.image-net.org/challenges/LSVRC/">The ImageNet
+Large Scale Visual Recognition Challenge (ILSVRC)</a> where competitors try to
+correctly classify images into 1000 different categories. In 2015 Google
+performed very well in this competition with their deep learning algorithm
+called Inception V3.
+</p>
+
+<p>
+Inception V3 is a neural network and Google have made both the shape of the
+network and the network weights available for anyone to use to classify their
+own images. This means you can run the algorithm on your own computer, against
+your own images and have full visibility on all the computation it does. You can
+even alter it or train it further if that is what you want to do.
+</p>
+
+<p>
+We can use the Inception V3 algorithm to classify an image of a cat.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #586e75;"># </span><span style="color: #586e75;">I have multiple keras backends installed</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Make sure that the tensorflow one is being used for this</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Must be done before keras libraries are loaded</span>
+<span style="color: #859900; font-weight: bold;">import</span> os
+<span style="color: #268bd2;">os.environ</span><span style="color: #2aa198;">[</span><span style="color: #2aa198;">"KERAS_BACKEND"</span><span style="color: #2aa198;">]</span> = <span style="color: #2aa198;">"tensorflow"</span>
+
+<span style="color: #859900; font-weight: bold;">from</span> keras.preprocessing.image <span style="color: #859900; font-weight: bold;">import</span> load_img, save_img, img_to_array
+<span style="color: #859900; font-weight: bold;">import</span> numpy <span style="color: #859900; font-weight: bold;">as</span> np
+<span style="color: #859900; font-weight: bold;">import</span> scipy
+
+<span style="color: #586e75;">## </span><span style="color: #586e75;">inception_v3 is the pre-trained neural network</span>
+<span style="color: #859900; font-weight: bold;">from</span> keras.applications <span style="color: #859900; font-weight: bold;">import</span> inception_v3
+<span style="color: #859900; font-weight: bold;">from</span> keras <span style="color: #859900; font-weight: bold;">import</span> backend <span style="color: #859900; font-weight: bold;">as</span> K
+
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">preprocess_image</span><span style="color: #2aa198;">(</span>image_path<span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Util function to open, resize and format pictures</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">into appropriate tensors.</span>
+    <span style="color: #268bd2;">img</span> = load_img<span style="color: #2aa198;">(</span>image_path, target_size=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">299</span>,<span style="color: #6c71c4;">299</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">img</span> = img_to_array<span style="color: #2aa198;">(</span>img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">img</span> = np.expand_dims<span style="color: #2aa198;">(</span>img, axis=<span style="color: #6c71c4;">0</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">img</span> = inception_v3.preprocess_input<span style="color: #2aa198;">(</span>img<span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">return</span> img
+
+
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">deprocess_image</span><span style="color: #2aa198;">(</span>y<span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Util function to convert a tensor into a valid image.</span>
+    <span style="color: #268bd2;">x</span> = np.copy<span style="color: #2aa198;">(</span>y<span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">if</span> K.image_data_format<span style="color: #2aa198;">()</span> == <span style="color: #2aa198;">'channels_first'</span>:
+        <span style="color: #268bd2;">x</span> = x.reshape<span style="color: #2aa198;">(</span><span style="color: #b58900;">(</span><span style="color: #6c71c4;">3</span>, x.shape<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">2</span><span style="color: #268bd2;">]</span>, x.shape<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">3</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+        <span style="color: #268bd2;">x</span> = x.transpose<span style="color: #2aa198;">(</span><span style="color: #b58900;">(</span><span style="color: #6c71c4;">1</span>, <span style="color: #6c71c4;">2</span>, <span style="color: #6c71c4;">0</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">else</span>:
+        <span style="color: #268bd2;">x</span> = x.reshape<span style="color: #2aa198;">(</span><span style="color: #b58900;">(</span>x.shape<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">1</span><span style="color: #268bd2;">]</span>, x.shape<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">2</span><span style="color: #268bd2;">]</span>, <span style="color: #6c71c4;">3</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">x</span> /= <span style="color: #6c71c4;">2</span>.
+    <span style="color: #268bd2;">x</span> += <span style="color: #6c71c4;">0</span>.<span style="color: #6c71c4;">5</span>
+    <span style="color: #268bd2;">x</span> *= <span style="color: #6c71c4;">255</span>.
+    <span style="color: #268bd2;">x</span> = np.clip<span style="color: #2aa198;">(</span>x, <span style="color: #6c71c4;">0</span>, <span style="color: #6c71c4;">255</span><span style="color: #2aa198;">)</span>.astype<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'uint8'</span><span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">return</span> x
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">We won't be training so set learning phase to 0</span>
+K.set_learning_phase<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Load the InceptionV3 model</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">The model will be loaded with pre-trained ImageNet weights.</span>
+<span style="color: #268bd2;">model</span> = inception_v3.InceptionV3<span style="color: #2aa198;">(</span>weights=<span style="color: #2aa198;">'imagenet'</span>,
+                                 include_top=<span style="color: #268bd2; font-weight: bold;">True</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Now load and classify an image</span>
+<span style="color: #268bd2;">original_img</span> = preprocess_image<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'lazycat.jpg'</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #859900; font-weight: bold;">import</span> matplotlib.pyplot <span style="color: #859900; font-weight: bold;">as</span> plt
+%matplotlib inline
+<span style="color: #268bd2;">top_predicted_label</span> = inception_v3.decode_predictions<span style="color: #2aa198;">(</span>model.predict<span style="color: #b58900;">(</span>original_img<span style="color: #b58900;">)</span>, top=<span style="color: #6c71c4;">1</span><span style="color: #2aa198;">)[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>
+plt.title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Predicted Label: %s (%f)'</span> % <span style="color: #b58900;">(</span>top_predicted_label<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">1</span><span style="color: #268bd2;">]</span>, top_predicted_label<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">2</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Add semicolon at the end of this line to prevent matplotlib</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">adding a description</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">https://stackoverflow.com/a/38971053</span>
+plt.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>original_img<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/Qr76jR.png" alt="Qr76jR.png" />
+</p>
+</div>
+
+<p>
+The Inception V3 algorithm classifies our image as an "Egyptian Cat" with 49%
+certainty.
+</p>
+
+<p>
+We can see what other classifications the algorithm thinks are possible in the
+table below.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #859900; font-weight: bold;">import</span> pandas <span style="color: #859900; font-weight: bold;">as</span> pd
+
+<span style="color: #268bd2;">preds</span> = model.predict<span style="color: #2aa198;">(</span>original_img<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">result</span> = inception_v3.decode_predictions<span style="color: #2aa198;">(</span>preds,
+                                         top=<span style="color: #6c71c4;">10</span><span style="color: #2aa198;">)</span>
+pd.DataFrame<span style="color: #2aa198;">(</span>result<span style="color: #b58900;">[</span><span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+</pre>
+</div>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right"># Out[242]:</th>
+<th scope="col" class="org-left">&#xa0;</th>
+<th scope="col" class="org-left">&#xa0;</th>
+<th scope="col" class="org-right">&#xa0;</th>
+<th scope="col" class="org-left">&#xa0;</th>
+</tr>
+
+<tr>
+<th scope="col" class="org-right">&#xa0;</th>
+<th scope="col" class="org-left">0</th>
+<th scope="col" class="org-left">1</th>
+<th scope="col" class="org-right">2</th>
+<th scope="col" class="org-left">&#xa0;</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">0</td>
+<td class="org-left">n02124075</td>
+<td class="org-left">Egyptian_cat</td>
+<td class="org-right">0.488812</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">1</td>
+<td class="org-left">n02123159</td>
+<td class="org-left">tiger_cat</td>
+<td class="org-right">0.096307</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">2</td>
+<td class="org-left">n02123045</td>
+<td class="org-left">tabby</td>
+<td class="org-right">0.0924525</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">3</td>
+<td class="org-left">n02123394</td>
+<td class="org-left">Persian_cat</td>
+<td class="org-right">0.0703125</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">4</td>
+<td class="org-left">n04399382</td>
+<td class="org-left">teddy</td>
+<td class="org-right">0.00825767</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">5</td>
+<td class="org-left">n04344873</td>
+<td class="org-left">studio_couch</td>
+<td class="org-right">0.00726824</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">6</td>
+<td class="org-left">n03793489</td>
+<td class="org-left">mouse</td>
+<td class="org-right">0.00718327</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">7</td>
+<td class="org-left">n04152593</td>
+<td class="org-left">screen</td>
+<td class="org-right">0.0058089</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">8</td>
+<td class="org-left">n03085013</td>
+<td class="org-left">computer_keyboard</td>
+<td class="org-right">0.00459059</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="org-right">9</td>
+<td class="org-left">n02123597</td>
+<td class="org-left">Siamese_cat</td>
+<td class="org-right">0.00341954</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Egyptian cat is the most likely but there are other types of cat (e.g. tabby,
+siamese) that are also possibilities. We can add all these up to get the "cat
+score" for an image.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">cat_score</span><span style="color: #2aa198;">(</span>preds<span style="color: #2aa198;">)</span>:
+   <span style="color: #586e75;"># </span><span style="color: #586e75;">See https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a for</span>
+   <span style="color: #586e75;"># </span><span style="color: #586e75;">a mapping of class numbers to names</span>
+   <span style="color: #268bd2;">tabby</span> = preds<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">281</span><span style="color: #2aa198;">]</span> <span style="color: #586e75;">#</span><span style="color: #586e75;">281 = tabby cat</span>
+   <span style="color: #268bd2;">tiger</span> = preds<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">282</span><span style="color: #2aa198;">]</span>
+   <span style="color: #268bd2;">persian</span> = preds<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">283</span><span style="color: #2aa198;">]</span>
+   <span style="color: #268bd2;">siamese</span> = preds<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">284</span><span style="color: #2aa198;">]</span>
+   <span style="color: #268bd2;">egyptian</span> = preds<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">285</span><span style="color: #2aa198;">]</span>
+   <span style="color: #268bd2;">total</span> = tabby + tiger + persian + siamese + egyptian
+   <span style="color: #859900; font-weight: bold;">return</span><span style="color: #2aa198;">(</span>total<span style="color: #2aa198;">)</span>
+
+plt.title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Cat Score: %f'</span> % <span style="color: #b58900;">(</span>cat_score<span style="color: #268bd2;">(</span>preds<span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+plt.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>original_img<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/iz2pWJ.png" alt="iz2pWJ.png" />
+</p>
+</div>
+
+<p>
+The maximum possible cat score is one. This cat scores 0.75.
+</p>
+
+<p>
+We can use the cat score to rank images of cats (or of anything!) based on how
+cat like Inception V3 thinks they are.
+</p>
+
+<p>
+I just happen to have ten thousand cat images downloaded from the internet (I'm
+not joking about this). We can rank them using the cat score and see which are
+the most and least cat like images.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #859900; font-weight: bold;">import</span> glob
+<span style="color: #859900; font-weight: bold;">import</span> pickle
+<span style="color: #859900; font-weight: bold;">import</span> os.path
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Cache the results because this takes a while.</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">If the cache file exists then just use this.</span>
+<span style="color: #859900; font-weight: bold;">if</span> os.path.isfile<span style="color: #2aa198;">(</span><span style="color: #2aa198;">"cat_probs.pkl"</span><span style="color: #2aa198;">)</span>:
+    <span style="color: #268bd2;">f</span> = <span style="color: #839496; font-weight: bold;">open</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">"cat_probs.pkl"</span>,<span style="color: #2aa198;">'rb'</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">cat_probs</span> = pickle.load<span style="color: #2aa198;">(</span>f<span style="color: #2aa198;">)</span>
+    f.close<span style="color: #2aa198;">()</span>
+<span style="color: #859900; font-weight: bold;">else</span>:
+    <span style="color: #268bd2;">files</span> = glob.glob<span style="color: #2aa198;">(</span><span style="color: #2aa198;">"CAT_*/*.jpg"</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">cat_probs</span> = <span style="color: #2aa198;">[]</span>
+    <span style="color: #859900; font-weight: bold;">for</span> f <span style="color: #859900; font-weight: bold;">in</span> files:
+        <span style="color: #268bd2;">img</span> = preprocess_image<span style="color: #2aa198;">(</span>f<span style="color: #2aa198;">)</span>
+        <span style="color: #268bd2;">preds</span> = model.predict<span style="color: #2aa198;">(</span>img<span style="color: #2aa198;">)</span>
+        <span style="color: #268bd2;">score</span> = cat_score<span style="color: #2aa198;">(</span>preds<span style="color: #2aa198;">)</span>
+        cat_probs.append<span style="color: #2aa198;">(</span><span style="color: #b58900;">{</span><span style="color: #2aa198;">'file'</span>:f,
+                          <span style="color: #2aa198;">'total'</span>: score
+                         <span style="color: #b58900;">}</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">f</span> = <span style="color: #839496; font-weight: bold;">open</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">"cat_probs.pkl"</span>,<span style="color: #2aa198;">'wb'</span><span style="color: #2aa198;">)</span>
+    pickle.dump<span style="color: #2aa198;">(</span>cat_probs,f<span style="color: #2aa198;">)</span>
+    f.close<span style="color: #2aa198;">()</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Sort the results</span>
+<span style="color: #268bd2;">cat_probs</span> = <span style="color: #839496; font-weight: bold;">sorted</span><span style="color: #2aa198;">(</span>cat_probs,
+                   key=<span style="color: #859900; font-weight: bold;">lambda</span> k: k<span style="color: #b58900;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #b58900;">]</span>,
+                   reverse=<span style="color: #268bd2; font-weight: bold;">True</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">top</span> = cat_probs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>
+<span style="color: #268bd2;">bottom</span> = cat_probs<span style="color: #2aa198;">[</span>-<span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>
+
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Most cat like: %s'</span> % <span style="color: #b58900;">(</span>top<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>preprocess_image<span style="color: #268bd2;">(</span>top<span style="color: #6c71c4;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Least cat like: %s'</span> % <span style="color: #b58900;">(</span>bottom<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>preprocess_image<span style="color: #268bd2;">(</span>bottom<span style="color: #6c71c4;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/HO6y0L.png" alt="HO6y0L.png" />
+</p>
+</div>
+
+<p>
+Here are the top ten most cat like cats:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">fig</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">5</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #859900; font-weight: bold;">for</span> i,ax <span style="color: #859900; font-weight: bold;">in</span> <span style="color: #839496; font-weight: bold;">enumerate</span><span style="color: #2aa198;">(</span>fig.axes<span style="color: #2aa198;">)</span>:
+  <span style="color: #268bd2;">cat</span> = cat_probs<span style="color: #2aa198;">[</span>i<span style="color: #2aa198;">]</span>
+  ax.get_xaxis<span style="color: #2aa198;">()</span>.set_visible<span style="color: #2aa198;">(</span><span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+  ax.get_yaxis<span style="color: #2aa198;">()</span>.set_visible<span style="color: #2aa198;">(</span><span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+  ax.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">"Rank %s. Score %f"</span> % <span style="color: #b58900;">(</span>i+<span style="color: #6c71c4;">1</span>,cat<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+  ax.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>preprocess_image<span style="color: #268bd2;">(</span>cat<span style="color: #6c71c4;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/JjdnfP.png" alt="JjdnfP.png" />
+</p>
+</div>
+
+<p>
+And the bottom ten in the rankings:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">ncats</span> = <span style="color: #839496; font-weight: bold;">len</span><span style="color: #2aa198;">(</span>cat_probs<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">fig</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">5</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #859900; font-weight: bold;">for</span> i,ax <span style="color: #859900; font-weight: bold;">in</span> <span style="color: #839496; font-weight: bold;">enumerate</span><span style="color: #2aa198;">(</span>fig.axes<span style="color: #2aa198;">)</span>:
+  <span style="color: #268bd2;">catix</span> = ncats - i -<span style="color: #6c71c4;">1</span>
+  <span style="color: #268bd2;">cat</span> = cat_probs<span style="color: #2aa198;">[</span>catix<span style="color: #2aa198;">]</span>
+  ax.get_xaxis<span style="color: #2aa198;">()</span>.set_visible<span style="color: #2aa198;">(</span><span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+  ax.get_yaxis<span style="color: #2aa198;">()</span>.set_visible<span style="color: #2aa198;">(</span><span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+  ax.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">"Rank %s. Score %f"</span> % <span style="color: #b58900;">(</span>catix+<span style="color: #6c71c4;">1</span>,cat<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+  ax.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>preprocess_image<span style="color: #268bd2;">(</span>cat<span style="color: #6c71c4;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/coZQZR.png" alt="coZQZR.png" />
+</p>
+</div>
+
+<p>
+So this is the cat engine - give it an image of a cat and it will give it a
+score which can be ranked against the images of the other ten thousand cats in
+the index.
+</p>
+
+<p>
+In the next section we will look at optimising a cat image to improve the cat
+score so that it ranks higher in the cat engine.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9407144" class="outline-3">
+<h3 id="org9407144">Adversarial Learning</h3>
+<div class="outline-text-3" id="text-org9407144">
+<blockquote>
+<p>
+<a href="https://en.wikipedia.org/wiki/Adversarial_machine_learning">Adversarial machine learning</a> is a technique employed in the field of machine
+learning which attempts to fool models through malicious input. This
+technique can be applied for a variety of reasons, the most common being to
+attack or cause a malfunction in standard machine learning models.
+</p>
+</blockquote>
+
+<p>
+Experts in adversarial learning use machine learning to trick other machine
+learning algorithms into making mistakes like misclassifying a picture of a cat
+as something else. This isn't very interesting if the picture <b>is</b> of something
+else but it is possible to find adversarial examples that are obviously one
+thing to a human but look like something else to the algorithm.
+</p>
+
+<p>
+To explain how to generate adversarial images we are first going to have to take
+a little dive into mathematics.
+</p>
+</div>
+
+<div id="outline-container-orga7b067c" class="outline-4">
+<h4 id="orga7b067c">Gradients of an image?</h4>
+<div class="outline-text-4" id="text-orga7b067c">
+<p>
+Before being sent to the algorithm all our images are scaled to 300x300 pixels.
+And each pixel has three values; one each for red, green and blue.
+</p>
+
+<p>
+So, to a computer, each image is just a point in a 300x300x3=2700 dimension
+space.
+</p>
+
+<p>
+And then Inception V3 is just a function from a 2700 dimension input to a 1000
+dimension output (because it predicts for 1000 classes).
+</p>
+
+<p>
+Then we turn the 1000 dimension output into a single number (1 dimension) by using
+our cat_scores function that calculates the score for an image from the Inception V3 predictions.
+</p>
+
+<p>
+We can use calculus to differentiate the Inception V3 function which gives us
+the gradient (or slope) at a given point. Which tells us which direction to go
+to increase or decrease the output. This tells us which pixels to change in an
+image in order to make it more or less like a particular class.
+</p>
+
+<p>
+This lets us use a machine learning method called "gradient descent" where we
+constantly move "downhill" to find the minimum of a function.
+</p>
+
+<p>
+Luckily for us, machine learning systems like tensorflow and keras make finding
+gradients and doing gradient descent (relatively) simple.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #859900; font-weight: bold;">from</span> keras <span style="color: #859900; font-weight: bold;">import</span> losses
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">The shape of the input</span>
+<span style="color: #268bd2;">image_shape</span> = model.<span style="color: #839496; font-weight: bold;">input</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Define the shape of the target</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Inception V3 has 1000 classes</span>
+<span style="color: #268bd2;">target_class</span> = K.placeholder<span style="color: #2aa198;">(</span>shape=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">1000</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Our loss is the crossentropy between the predicted class of the</span>
+<span style="color: #586e75;"># </span><span style="color: #586e75;">output and the target class</span>
+<span style="color: #268bd2;">adversarial_loss</span> = losses.categorical_crossentropy<span style="color: #2aa198;">(</span>target_class, model.output<span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Keras automagically calculates the gradients</span>
+<span style="color: #268bd2;">grads</span> = K.gradients<span style="color: #2aa198;">(</span>adversarial_loss, image_shape<span style="color: #2aa198;">)[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Clip the grads to prevent blowup</span>
+<span style="color: #268bd2;">grads</span> /= K.maximum<span style="color: #2aa198;">(</span>K.mean<span style="color: #b58900;">(</span>K.<span style="color: #839496; font-weight: bold;">abs</span><span style="color: #268bd2;">(</span>grads<span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span>, K.epsilon<span style="color: #b58900;">()</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">Define the computation graph in keras</span>
+<span style="color: #268bd2;">outputs</span> = <span style="color: #2aa198;">[</span>adversarial_loss, grads<span style="color: #2aa198;">]</span>
+<span style="color: #268bd2;">fetch_loss_and_grads</span> = K.function<span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>image_shape,target_class<span style="color: #b58900;">]</span>, outputs<span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">cls is the target class</span>
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">eval_loss_and_grads</span><span style="color: #2aa198;">(</span>x,cls, loss_func<span style="color: #2aa198;">)</span>:
+    <span style="color: #268bd2;">outs</span> = loss_func<span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>x,cls<span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">loss_value</span> = outs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>
+    <span style="color: #268bd2;">grad_values</span> = outs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>
+    <span style="color: #859900; font-weight: bold;">return</span> loss_value, grad_values
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">then we do gradient descent to minimise the loss</span>
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">gradient_descent</span><span style="color: #2aa198;">(</span>x, iterations, step, cls=<span style="color: #268bd2; font-weight: bold;">None</span>, max_loss=<span style="color: #268bd2; font-weight: bold;">None</span>, loss_func=<span style="color: #268bd2; font-weight: bold;">None</span><span style="color: #2aa198;">)</span>:
+    <span style="color: #859900; font-weight: bold;">for</span> i <span style="color: #859900; font-weight: bold;">in</span> <span style="color: #839496; font-weight: bold;">range</span><span style="color: #2aa198;">(</span>iterations<span style="color: #2aa198;">)</span>:
+        <span style="color: #268bd2;">loss_value</span>, <span style="color: #268bd2;">grad_values</span> = eval_loss_and_grads<span style="color: #2aa198;">(</span>x, cls, loss_func<span style="color: #2aa198;">)</span>
+        <span style="color: #859900; font-weight: bold;">if</span> max_loss <span style="color: #859900; font-weight: bold;">is</span> <span style="color: #859900; font-weight: bold;">not</span> <span style="color: #268bd2; font-weight: bold;">None</span> <span style="color: #859900; font-weight: bold;">and</span> loss_value &gt; max_loss:
+            <span style="color: #859900; font-weight: bold;">break</span>
+        <span style="color: #268bd2;">x</span> -= step * grad_values
+    <span style="color: #859900; font-weight: bold;">return</span> x
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgcea86f2" class="outline-4">
+<h4 id="orgcea86f2">Cat to Aircraft Carrier</h4>
+<div class="outline-text-4" id="text-orgcea86f2">
+<p>
+Let's take our original cat image and then change it to make it classify as
+something else.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">optimise_image</span><span style="color: #2aa198;">(</span>input_path,
+                   target,
+                   iterations = <span style="color: #6c71c4;">10</span>,
+                   step = <span style="color: #6c71c4;">0</span>.<span style="color: #6c71c4;">01</span>,
+                   max_loss = <span style="color: #6c71c4;">10</span>
+                  <span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Now do the gradient descent</span>
+    <span style="color: #268bd2;">original_img</span> = preprocess_image<span style="color: #2aa198;">(</span>input_path<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">img_copy</span> = np.copy<span style="color: #2aa198;">(</span>original_img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">newimg</span> = gradient_descent<span style="color: #2aa198;">(</span>img_copy,
+                              iterations=iterations,
+                              step=step,
+                              max_loss=max_loss,
+                              loss_func = fetch_loss_and_grads,
+                              cls = target
+                             <span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">f</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">top_predicted_label</span> = inception_v3.decode_predictions<span style="color: #2aa198;">(</span>model.predict<span style="color: #b58900;">(</span>original_img<span style="color: #b58900;">)</span>, top=<span style="color: #6c71c4;">1</span><span style="color: #2aa198;">)[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>
+    axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Predicted Label: %s (%.3f)'</span> % <span style="color: #b58900;">(</span>top_predicted_label<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">1</span><span style="color: #268bd2;">]</span>, top_predicted_label<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">2</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>original_img<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">top_predicted_label</span> = inception_v3.decode_predictions<span style="color: #2aa198;">(</span>model.predict<span style="color: #b58900;">(</span>newimg<span style="color: #b58900;">)</span>, top=<span style="color: #6c71c4;">1</span><span style="color: #2aa198;">)[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">][</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>
+    axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Predicted Label: %s (%.3f)'</span> % <span style="color: #b58900;">(</span>top_predicted_label<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">1</span><span style="color: #268bd2;">]</span>, top_predicted_label<span style="color: #268bd2;">[</span><span style="color: #6c71c4;">2</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+    axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>newimg<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">aircraft_carrier</span> = np.zeros<span style="color: #2aa198;">(</span>shape=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">1000</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">aircraft_carrier</span><span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">403</span><span style="color: #2aa198;">]</span> = <span style="color: #6c71c4;">1</span>.
+
+optimise_image<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'lazycat.jpg'</span>, aircraft_carrier, iterations=<span style="color: #6c71c4;">1000</span><span style="color: #2aa198;">)</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/w7GZBM.png" alt="w7GZBM.png" />
+</p>
+</div>
+
+<p>
+After 1000 iterations of gradient descent our cat image looks a little bit fuzzy
+to the human eye but to the algorithm it looks like an aircraft carrier with
+very high confidence (1.00 out of 1.00!).
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7a7a017" class="outline-4">
+<h4 id="org7a7a017">Cat to a "better" cat</h4>
+<div class="outline-text-4" id="text-org7a7a017">
+<p>
+We can use the same idea to take an image of a cat and make it more cat like so
+that it ranks higher in our ranking engine.
+</p>
+
+<p>
+Let's do it with the bottom ranked image:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">egyptian_cat</span> = np.zeros<span style="color: #2aa198;">(</span>shape=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">1000</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">egyptian_cat</span><span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">285</span><span style="color: #2aa198;">]</span> = <span style="color: #6c71c4;">1</span>
+
+optimise_image<span style="color: #2aa198;">(</span>bottom<span style="color: #b58900;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #b58900;">]</span>,
+               egyptian_cat,
+               iterations=<span style="color: #6c71c4;">100</span>,
+               max_loss=<span style="color: #268bd2; font-weight: bold;">None</span><span style="color: #2aa198;">)</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/3cJbmw.png" alt="3cJbmw.png" />
+</p>
+</div>
+
+<p>
+Perfect! From the bottom ranked image in my cat picture collection to the top!
+If only real life search engine optimisation was so easy!
+</p>
+
+<p>
+One of the reasons why real life is not this easy is that in real life people
+don't have access to the internals of the algorithm they are optimising for. So
+they can't calculate the gradients and they don't know which are the optimal
+changes to make to the image.
+</p>
+
+<p>
+Does this mean there is nothing we can do? Of course not! We can still improve
+an image (in the eyes of the algorithm) even without knowing anything about the
+algorithm internals - we only need to know the input image and the score the
+algorithm gives it. We can treat the algorithm as a total black box!
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org31db6a7" class="outline-3">
+<h3 id="org31db6a7">Optimising against a black box</h3>
+<div class="outline-text-3" id="text-org31db6a7">
+<blockquote>
+<p>
+In science, computing, and engineering, a <a href="https://en.wikipedia.org/wiki/Black_box">black box</a> is a device, system or
+object which can be viewed in terms of its inputs and outputs without any
+knowledge of its internal workings. Its implementation is "opaque" (black).
+</p>
+</blockquote>
+
+<p>
+For the cat engine the input is an image and the output is the cat score. The
+"black box" is the Inception V3 neural network that calculates the score; we are
+going to pretend that we don't know how it does this.
+</p>
+
+<p>
+We can feed an image into the algorithm and see the score but that is all we
+know. We aren't going to use the gradient to figure out which changes to the
+image will be most beneficial to us so the tricky part of the challenge is
+figuring out how to change the image.
+</p>
+
+<p>
+As mentioned earlier, there are 2700 different things we could change and the
+combination of these changes adds up to a lot of potential images. Far more than
+we could check one at a time. if we could check every possible image I guess we
+could also just copy whatever is the highest scoring image.
+</p>
+
+<p>
+Let's consider a much smaller search space. What if we only changed one pixel?
+How much difference to the score could that make?
+</p>
+<p>
+    <em>The images on the right are a magnification of the red box in the images on the left</em>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #586e75;"># </span><span style="color: #586e75;">Modified from https://github.com/Hyperparticle/one-pixel-attack-keras/blob/master/1_one-pixel-attack-cifar10.ipynb</span>
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">perturb_image</span><span style="color: #2aa198;">(</span>xs, old_img<span style="color: #2aa198;">)</span>:
+    <span style="color: #268bd2;">img</span> = np.copy<span style="color: #2aa198;">(</span>old_img<span style="color: #2aa198;">)</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">If this function is passed just one perturbation vector,</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">pack it in a list to keep the computation the same</span>
+    <span style="color: #859900; font-weight: bold;">if</span> xs.ndim &lt; <span style="color: #6c71c4;">2</span>:
+        <span style="color: #268bd2;">xs</span> = np.array<span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>xs<span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Copy the image n == len(xs) times so that we can</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">create n new perturbed images</span>
+    <span style="color: #268bd2;">tile</span> = <span style="color: #2aa198;">[</span><span style="color: #839496; font-weight: bold;">len</span><span style="color: #b58900;">(</span>xs<span style="color: #b58900;">)</span><span style="color: #2aa198;">]</span> + <span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>*<span style="color: #2aa198;">(</span>xs.ndim+<span style="color: #6c71c4;">1</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">imgs</span> = np.tile<span style="color: #2aa198;">(</span>img, tile<span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Make sure to floor the members of xs as int types</span>
+    <span style="color: #268bd2;">xs</span> = xs.astype<span style="color: #2aa198;">(</span><span style="color: #839496; font-weight: bold;">int</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #859900; font-weight: bold;">for</span> x,img <span style="color: #859900; font-weight: bold;">in</span> <span style="color: #839496; font-weight: bold;">zip</span><span style="color: #2aa198;">(</span>xs, imgs<span style="color: #2aa198;">)</span>:
+        <span style="color: #586e75;"># </span><span style="color: #586e75;">Split x into an array of 5-tuples (perturbation pixels)</span>
+        <span style="color: #586e75;"># </span><span style="color: #586e75;">i.e., [[x,y,r,g,b], ...]</span>
+        <span style="color: #268bd2;">pixels</span> = np.split<span style="color: #2aa198;">(</span>x, <span style="color: #839496; font-weight: bold;">len</span><span style="color: #b58900;">(</span>x<span style="color: #b58900;">)</span> // <span style="color: #6c71c4;">5</span><span style="color: #2aa198;">)</span>
+        <span style="color: #859900; font-weight: bold;">for</span> pixel <span style="color: #859900; font-weight: bold;">in</span> pixels:
+            <span style="color: #586e75;"># </span><span style="color: #586e75;">At each pixel's x,y position, assign its rgb value</span>
+            x_pos, y_pos, *<span style="color: #268bd2;">rgb</span> = pixel
+            <span style="color: #268bd2;">img</span><span style="color: #2aa198;">[</span>x_pos, y_pos<span style="color: #2aa198;">]</span> = rgb
+
+    <span style="color: #859900; font-weight: bold;">return</span> imgs
+
+<span style="color: #268bd2;">original_img</span> = preprocess_image<span style="color: #2aa198;">(</span>bottom<span style="color: #b58900;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">old_preds</span> = model.predict<span style="color: #2aa198;">(</span>original_img<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">old_score</span> = cat_score<span style="color: #2aa198;">(</span>old_preds<span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">pixel</span> = np.array<span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span><span style="color: #6c71c4;">150</span>, <span style="color: #6c71c4;">150</span>, <span style="color: #6c71c4;">0</span>, <span style="color: #6c71c4;">0</span>, <span style="color: #6c71c4;">255</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span> <span style="color: #586e75;"># </span><span style="color: #586e75;">pixel = x,y,r,g,b</span>
+<span style="color: #268bd2;">image_perturbed</span> = perturb_image<span style="color: #2aa198;">(</span>pixel, original_img<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">new_preds</span> = model.predict<span style="color: #2aa198;">(</span>image_perturbed<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">new_score</span> = cat_score<span style="color: #2aa198;">(</span>new_preds<span style="color: #2aa198;">)</span>
+
+
+<span style="color: #859900; font-weight: bold;">import</span> matplotlib.patches <span style="color: #859900; font-weight: bold;">as</span> patches
+
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Old Score: %f'</span> % old_score<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.add_patch<span style="color: #2aa198;">(</span>patches.Rectangle<span style="color: #b58900;">(</span><span style="color: #268bd2;">(</span><span style="color: #6c71c4;">140</span>,<span style="color: #6c71c4;">140</span><span style="color: #268bd2;">)</span>,<span style="color: #6c71c4;">20</span>,<span style="color: #6c71c4;">20</span>,linewidth=<span style="color: #6c71c4;">1</span>,edgecolor=<span style="color: #2aa198;">'r'</span>,facecolor=<span style="color: #2aa198;">'none'</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_xlim<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">140</span>,<span style="color: #6c71c4;">160</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_ylim<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">160</span>,<span style="color: #6c71c4;">140</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'New Score: %f'</span> % new_score<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>image_perturbed<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>image_perturbed<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/b7n6Ed.png" alt="b7n6Ed.png" />
+</p>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">pixel</span> = np.array<span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span><span style="color: #6c71c4;">150</span>, <span style="color: #6c71c4;">150</span>, <span style="color: #6c71c4;">0</span>, <span style="color: #6c71c4;">255</span>, <span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span> <span style="color: #586e75;"># </span><span style="color: #586e75;">pixel = x,y,r,g,b</span>
+<span style="color: #268bd2;">image_perturbed</span> = perturb_image<span style="color: #2aa198;">(</span>pixel, original_img<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">new_preds</span> = model.predict<span style="color: #2aa198;">(</span>image_perturbed<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">new_score</span> = cat_score<span style="color: #2aa198;">(</span>new_preds<span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Old Score: %f'</span> % old_score<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.add_patch<span style="color: #2aa198;">(</span>patches.Rectangle<span style="color: #b58900;">(</span><span style="color: #268bd2;">(</span><span style="color: #6c71c4;">140</span>,<span style="color: #6c71c4;">140</span><span style="color: #268bd2;">)</span>,<span style="color: #6c71c4;">20</span>,<span style="color: #6c71c4;">20</span>,linewidth=<span style="color: #6c71c4;">1</span>,edgecolor=<span style="color: #2aa198;">'r'</span>,facecolor=<span style="color: #2aa198;">'none'</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_xlim<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">140</span>,<span style="color: #6c71c4;">160</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_ylim<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">160</span>,<span style="color: #6c71c4;">140</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'New Score: %f'</span> % new_score<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>image_perturbed<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>image_perturbed<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/snMZhY.png" alt="snMZhY.png" />
+</p>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">pixel</span> = np.array<span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span><span style="color: #6c71c4;">150</span>, <span style="color: #6c71c4;">150</span>, <span style="color: #6c71c4;">255</span>, <span style="color: #6c71c4;">0</span>, <span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span> <span style="color: #586e75;"># </span><span style="color: #586e75;">pixel = x,y,r,g,b</span>
+<span style="color: #268bd2;">image_perturbed</span> = perturb_image<span style="color: #2aa198;">(</span>pixel, original_img<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">new_preds</span> = model.predict<span style="color: #2aa198;">(</span>image_perturbed<span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">new_score</span> = cat_score<span style="color: #2aa198;">(</span>new_preds<span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Old Score: %f'</span> % old_score<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.add_patch<span style="color: #2aa198;">(</span>patches.Rectangle<span style="color: #b58900;">(</span><span style="color: #268bd2;">(</span><span style="color: #6c71c4;">140</span>,<span style="color: #6c71c4;">140</span><span style="color: #268bd2;">)</span>,<span style="color: #6c71c4;">20</span>,<span style="color: #6c71c4;">20</span>,linewidth=<span style="color: #6c71c4;">1</span>,edgecolor=<span style="color: #2aa198;">'r'</span>,facecolor=<span style="color: #2aa198;">'none'</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_xlim<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">140</span>,<span style="color: #6c71c4;">160</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_ylim<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">160</span>,<span style="color: #6c71c4;">140</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'New Score: %f'</span> % new_score<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>image_perturbed<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>image_perturbed<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/0HeOYw.png" alt="0HeOYw.png" />
+</p>
+</div>
+
+<p>
+Changing just one pixel in the centre of the image between red, green, and blue
+can lead to quite a big change in the cat score. This indicates two things:
+</p>
+
+<ol class="org-ol">
+<li>That the neural network is not really "seeing" things in the way that a
+person does</li>
+<li>That changing just one pixel might be enough to make big improvements in the
+cat score. This is very important because it reduces the size of the search
+space considerably.</li>
+</ol>
+
+<p>
+"One pixel attacks" are studied in adversarial learning where people try to
+change one pixel of an image in order for it to get wrongly classified. There is
+a good example of the code for this via <a href="https://github.com/Hyperparticle/one-pixel-attack-keras/blob/master/1_one-pixel-attack-cifar10.ipynb">Dan Kondratyuk on Github</a> from whom I have
+borrowed for these examples.
+</p>
+
+<p>
+The trick here is not to pick a specific pixel and then optimise the colour (as
+in the examples above) but to change different pixels and see how this
+influences the score. When a few different pixels/colours have been tested the
+results can be combined using a genetic algorithm called <a href="https://en.wikipedia.org/wiki/Differential_evolution">"differential
+evolution"</a>. I'm not going to go into depth here about why this works because I
+don't fully understand it myself; I kind of get why, in general, combining two
+good solutions to an optimisation problem might lead to another good solution. I
+am at a bit of a loss how this is meant to work with pixels on opposite sides of
+an image.
+</p>
+
+<p>
+Luckily we don't need perfect understanding because SciPy has an implementation
+of the differential evolution algorithm so all we need to do is prepare some
+functions and link them all together.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">get_new_score</span><span style="color: #2aa198;">(</span>xs, img, get_score, model<span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Perturb the image with the given pixel(s) x and get the prediction of the model</span>
+    <span style="color: #268bd2;">imgs_perturbed</span> = perturb_image<span style="color: #2aa198;">(</span>xs, img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">predictions</span> = model.predict<span style="color: #2aa198;">(</span>imgs_perturbed<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">score</span> = get_score<span style="color: #2aa198;">(</span>predictions<span style="color: #2aa198;">)</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Return 1-score because we need something to minimise</span>
+    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #6c71c4;">1</span> - score
+
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">attack_success</span><span style="color: #2aa198;">(</span>x, img, get_score, threshold, model, verbose=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Perturb the image with the given pixel(s) and get the prediction of the model</span>
+    <span style="color: #268bd2;">attack_image</span> = perturb_image<span style="color: #2aa198;">(</span>x, img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">preds</span> = model.predict<span style="color: #2aa198;">(</span>attack_image<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">score</span> = get_score<span style="color: #2aa198;">(</span>preds<span style="color: #2aa198;">)</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">If the prediction is what we want (misclassification or</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">targeted classification), return True</span>
+    <span style="color: #859900; font-weight: bold;">if</span> verbose:
+        <span style="color: #859900; font-weight: bold;">print</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Score:'</span>, score<span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">if</span> <span style="color: #2aa198;">(</span>score&gt;threshold<span style="color: #2aa198;">)</span>:
+        <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #268bd2; font-weight: bold;">True</span>
+    <span style="color: #586e75;"># </span><span style="color: #d0bf8f;">NOTE</span><span style="color: #586e75;">: return None otherwise (not False), due to how Scipy handles its</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">callback function</span>
+
+<span style="color: #859900; font-weight: bold;">from</span> scipy.optimize <span style="color: #859900; font-weight: bold;">import</span> differential_evolution
+
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">attack</span><span style="color: #2aa198;">(</span>img, model, threshold, pixel_count=<span style="color: #6c71c4;">1</span>,
+           maxiter=<span style="color: #6c71c4;">75</span>, popsize=<span style="color: #6c71c4;">400</span>, verbose=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>:
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Define bounds for a flat vector of x,y,r,g,b values</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">For more pixels, repeat this layout</span>
+    <span style="color: #268bd2;">bounds</span> = <span style="color: #2aa198;">[</span><span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">299</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">299</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">255</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">255</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">255</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">]</span> * pixel_count
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Population multiplier, in terms of the size of the perturbation vector x</span>
+    <span style="color: #268bd2;">popmul</span> = <span style="color: #839496; font-weight: bold;">max</span><span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>, popsize // <span style="color: #839496; font-weight: bold;">len</span><span style="color: #b58900;">(</span>bounds<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Format the predict/callback functions for the differential evolution algorithm</span>
+    <span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">predict_fn</span><span style="color: #2aa198;">(</span>xs<span style="color: #2aa198;">)</span>:
+        <span style="color: #859900; font-weight: bold;">return</span> get_new_score<span style="color: #2aa198;">(</span>xs, img, cat_score, model<span style="color: #2aa198;">)</span>
+
+    <span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">callback_fn</span><span style="color: #2aa198;">(</span>x, convergence<span style="color: #2aa198;">)</span>:
+        <span style="color: #859900; font-weight: bold;">return</span> attack_success<span style="color: #2aa198;">(</span>x, img, cat_score, threshold, model,verbose<span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Call Scipy's Implementation of Differential Evolution</span>
+    <span style="color: #268bd2;">attack_result</span> = differential_evolution<span style="color: #2aa198;">(</span>
+        predict_fn, bounds, maxiter=maxiter, popsize=popmul,
+        recombination=<span style="color: #6c71c4;">1</span>, atol=-<span style="color: #6c71c4;">1</span>, callback=callback_fn, polish=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;">#</span><span style="color: #586e75;">Calculate some useful statistics to return from this function</span>
+    <span style="color: #268bd2;">attack_image</span> = perturb_image<span style="color: #2aa198;">(</span>attack_result.x, img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">old_preds</span> = model.predict<span style="color: #2aa198;">(</span>img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">old_score</span> = cat_score<span style="color: #2aa198;">(</span>old_preds<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">new_preds</span> = model.predict<span style="color: #2aa198;">(</span>attack_image<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">new_score</span> = cat_score<span style="color: #2aa198;">(</span>new_preds<span style="color: #2aa198;">)</span>
+
+    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #2aa198;">{</span><span style="color: #2aa198;">'attack'</span>: attack_result,
+            <span style="color: #2aa198;">'attacked_image'</span>: attack_image<span style="color: #b58900;">[</span><span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span>,
+            <span style="color: #2aa198;">'original_image'</span>: img,
+            <span style="color: #2aa198;">'original_score'</span>: old_score,
+            <span style="color: #2aa198;">'new_score'</span>: new_score,
+            <span style="color: #2aa198;">'improvement'</span>: new_score-old_score
+           <span style="color: #2aa198;">}</span>
+
+
+<span style="color: #268bd2;">original_img</span> = preprocess_image<span style="color: #2aa198;">(</span>bottom<span style="color: #b58900;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #586e75;"># </span><span style="color: #586e75;">This takes a while to run so cache result</span>
+<span style="color: #859900; font-weight: bold;">if</span> os.path.isfile<span style="color: #2aa198;">(</span><span style="color: #2aa198;">"one_pixel_results.pkl"</span><span style="color: #2aa198;">)</span>:
+    <span style="color: #268bd2;">f</span> = <span style="color: #839496; font-weight: bold;">open</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">"one_pixel_results.pkl"</span>,<span style="color: #2aa198;">'rb'</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">result</span> = pickle.load<span style="color: #2aa198;">(</span>f<span style="color: #2aa198;">)</span>
+    f.close<span style="color: #2aa198;">()</span>
+<span style="color: #859900; font-weight: bold;">else</span>:
+    <span style="color: #268bd2;">result</span> = attack<span style="color: #2aa198;">(</span>original_img, model, <span style="color: #6c71c4;">0</span>.<span style="color: #6c71c4;">9</span>, pixel_count=<span style="color: #6c71c4;">1</span>, verbose=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">f</span> = <span style="color: #839496; font-weight: bold;">open</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">"one_pixel_results.pkl"</span>,<span style="color: #2aa198;">'wb'</span><span style="color: #2aa198;">)</span>
+    pickle.dump<span style="color: #2aa198;">(</span>result,f<span style="color: #2aa198;">)</span>
+    f.close<span style="color: #2aa198;">()</span>
+
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Old Score: (%.3f)'</span> % <span style="color: #b58900;">(</span>result<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'original_score'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>result<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'original_image'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'New Score: (%.3f)'</span> % <span style="color: #b58900;">(</span>result<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'new_score'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>np.array<span style="color: #268bd2;">(</span><span style="color: #6c71c4;">[</span>result<span style="color: #859900;">[</span><span style="color: #2aa198;">'attacked_image'</span><span style="color: #859900;">]</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/TS8pzY.png" alt="TS8pzY.png" />
+</p>
+</div>
+
+<p>
+These look practically identical (which they are, only a single pixel is
+different!) but if we zoom in we can see the change.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">pixel</span> = result<span style="color: #2aa198;">[</span><span style="color: #2aa198;">'attack'</span><span style="color: #2aa198;">]</span>.x
+
+<span style="color: #859900; font-weight: bold;">import</span> math
+
+<span style="color: #268bd2;">attack_x</span> = math.floor<span style="color: #2aa198;">(</span>pixel<span style="color: #b58900;">[</span><span style="color: #6c71c4;">1</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">attack_y</span> = math.floor<span style="color: #2aa198;">(</span>pixel<span style="color: #b58900;">[</span><span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">x</span> = deprocess_image<span style="color: #2aa198;">(</span>np.array<span style="color: #b58900;">(</span><span style="color: #268bd2;">[</span>result<span style="color: #6c71c4;">[</span><span style="color: #2aa198;">'attacked_image'</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.add_patch<span style="color: #2aa198;">(</span>patches.Rectangle<span style="color: #b58900;">(</span><span style="color: #268bd2;">(</span>attack_x-<span style="color: #6c71c4;">15</span>,attack_y-<span style="color: #6c71c4;">15</span><span style="color: #268bd2;">)</span>,<span style="color: #6c71c4;">30</span>,<span style="color: #6c71c4;">30</span>,linewidth=<span style="color: #6c71c4;">1</span>,edgecolor=<span style="color: #2aa198;">'r'</span>,facecolor=<span style="color: #2aa198;">'none'</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_xlim<span style="color: #2aa198;">(</span>attack_x-<span style="color: #6c71c4;">15</span>,attack_x+<span style="color: #6c71c4;">15</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_ylim<span style="color: #2aa198;">(</span>attack_y+<span style="color: #6c71c4;">15</span>,attack_y-<span style="color: #6c71c4;">15</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>x<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>x<span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/1y1P57.png" alt="1y1P57.png" />
+</p>
+</div>
+
+<p>
+We have found a single pixel that can increase the cat score from 0 to 0.782.
+This is enough to improve the ranking from 9997 to 4439 which is quite a lot. It
+would be totally useless in terms of search traffic (still on page 440!) but
+remember that we were starting with a <i>terrible</i> image of a cat to begin with
+and that we have only changed one pixel.
+</p>
+
+<p>
+There is one more step we can take to make cat engine optimisation slightly more
+like real search engine optimisation. For the above image we treated the ranking
+algorithm like a black box with the image as input and the cat score as output.
+This is a bit unrealistic because no one sees actual search engine scores;
+instead you can only see where your pages rank relative to all the others.
+</p>
+
+<p>
+This is an important distinction because there might be a big gap in score
+between your page and the page ranked above. You could be making improvements
+for some time before you observe a change in rankings.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org8aedede" class="outline-3">
+<h3 id="org8aedede">Optimising against a blacker box</h3>
+<div class="outline-text-3" id="text-org8aedede">
+<p>
+To see if we can optimise with this new constraint we just need to change a few
+of the functions we use to configure the differential evolution algorithm so
+that it only receives feedback on changes in ranking rather than changes in
+score.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ipython">
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">get_new_score</span><span style="color: #2aa198;">(</span>xs, img, model<span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Perturb the image with the given pixel(s) x and get the prediction of the model</span>
+    <span style="color: #268bd2;">imgs_perturbed</span> = perturb_image<span style="color: #2aa198;">(</span>xs, img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">predictions</span> = model.predict<span style="color: #2aa198;">(</span>imgs_perturbed<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">score</span> = cat_score<span style="color: #2aa198;">(</span>predictions<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">rank</span> = <span style="color: #839496; font-weight: bold;">sum</span><span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>score &lt; x<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span> <span style="color: #859900; font-weight: bold;">for</span> x <span style="color: #859900; font-weight: bold;">in</span> cat_probs<span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span> + <span style="color: #6c71c4;">1</span>
+    <span style="color: #859900; font-weight: bold;">return</span> rank
+
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">attack_success</span><span style="color: #2aa198;">(</span>x, img, target_rank, model, verbose=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>:
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Perturb the image with the given pixel(s) and get the prediction of the model</span>
+    <span style="color: #268bd2;">attack_image</span> = perturb_image<span style="color: #2aa198;">(</span>x, img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">preds</span> = model.predict<span style="color: #2aa198;">(</span>attack_image<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">score</span> = cat_score<span style="color: #2aa198;">(</span>preds<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">rank</span> = <span style="color: #839496; font-weight: bold;">sum</span><span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>score &lt; x<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span> <span style="color: #859900; font-weight: bold;">for</span> x <span style="color: #859900; font-weight: bold;">in</span> cat_probs<span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">if</span> verbose:
+        <span style="color: #859900; font-weight: bold;">print</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Score:'</span>, score<span style="color: #2aa198;">)</span>
+    <span style="color: #859900; font-weight: bold;">if</span> <span style="color: #2aa198;">(</span>rank&lt;target_rank<span style="color: #2aa198;">)</span>:
+        <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #268bd2; font-weight: bold;">True</span>
+    <span style="color: #586e75;"># </span><span style="color: #d0bf8f;">NOTE</span><span style="color: #586e75;">: return None otherwise (not False), due to how Scipy handles its</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">callback function</span>
+
+<span style="color: #859900; font-weight: bold;">from</span> scipy.optimize <span style="color: #859900; font-weight: bold;">import</span> differential_evolution
+
+<span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">attack</span><span style="color: #2aa198;">(</span>img, model, target_rank, pixel_count=<span style="color: #6c71c4;">1</span>,
+           maxiter=<span style="color: #6c71c4;">75</span>, popsize=<span style="color: #6c71c4;">400</span>, verbose=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>:
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Define bounds for a flat vector of x,y,r,g,b values</span>
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">For more pixels, repeat this layout</span>
+    <span style="color: #268bd2;">bounds</span> = <span style="color: #2aa198;">[</span><span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">299</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">299</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">255</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">255</span><span style="color: #b58900;">)</span>, <span style="color: #b58900;">(</span><span style="color: #6c71c4;">0</span>,<span style="color: #6c71c4;">255</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">]</span> * pixel_count
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Population multiplier, in terms of the size of the perturbation vector x</span>
+    <span style="color: #268bd2;">popmul</span> = <span style="color: #839496; font-weight: bold;">max</span><span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>, popsize // <span style="color: #839496; font-weight: bold;">len</span><span style="color: #b58900;">(</span>bounds<span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Format the predict/callback functions for the differential evolution algorithm</span>
+    <span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">predict_fn</span><span style="color: #2aa198;">(</span>xs<span style="color: #2aa198;">)</span>:
+        <span style="color: #859900; font-weight: bold;">return</span> get_new_score<span style="color: #2aa198;">(</span>xs, img, model<span style="color: #2aa198;">)</span>
+
+    <span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">callback_fn</span><span style="color: #2aa198;">(</span>x, convergence<span style="color: #2aa198;">)</span>:
+        <span style="color: #859900; font-weight: bold;">return</span> attack_success<span style="color: #2aa198;">(</span>x, img, target_rank, model,verbose<span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;"># </span><span style="color: #586e75;">Call Scipy's Implementation of Differential Evolution</span>
+    <span style="color: #268bd2;">attack_result</span> = differential_evolution<span style="color: #2aa198;">(</span>
+        predict_fn, bounds, maxiter=maxiter, popsize=popmul,
+        recombination=<span style="color: #6c71c4;">1</span>, atol=-<span style="color: #6c71c4;">1</span>, callback=callback_fn, polish=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #586e75;">#</span><span style="color: #586e75;">Calculate some useful statistics to return from this function</span>
+    <span style="color: #268bd2;">attack_image</span> = perturb_image<span style="color: #2aa198;">(</span>attack_result.x, img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">old_preds</span> = model.predict<span style="color: #2aa198;">(</span>img<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">old_score</span> = cat_score<span style="color: #2aa198;">(</span>old_preds<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">old_rank</span> = <span style="color: #839496; font-weight: bold;">sum</span><span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>old_score &lt; x<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span> <span style="color: #859900; font-weight: bold;">for</span> x <span style="color: #859900; font-weight: bold;">in</span> cat_probs<span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">new_preds</span> = model.predict<span style="color: #2aa198;">(</span>attack_image<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">new_score</span> = cat_score<span style="color: #2aa198;">(</span>new_preds<span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">new_rank</span> = <span style="color: #839496; font-weight: bold;">sum</span><span style="color: #2aa198;">(</span><span style="color: #b58900;">[</span>new_score &lt; x<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'total'</span><span style="color: #268bd2;">]</span> <span style="color: #859900; font-weight: bold;">for</span> x <span style="color: #859900; font-weight: bold;">in</span> cat_probs<span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+
+    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #2aa198;">{</span><span style="color: #2aa198;">'attack'</span>: attack_result,
+            <span style="color: #2aa198;">'attacked_image'</span>: attack_image<span style="color: #b58900;">[</span><span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span>,
+            <span style="color: #2aa198;">'original_image'</span>: img,
+            <span style="color: #2aa198;">'original_score'</span>: old_rank,
+            <span style="color: #2aa198;">'new_score'</span>: new_rank,
+            <span style="color: #2aa198;">'improvement'</span>: new_score-old_score
+           <span style="color: #2aa198;">}</span>
+
+
+<span style="color: #268bd2;">original_img</span> = preprocess_image<span style="color: #2aa198;">(</span>bottom<span style="color: #b58900;">[</span><span style="color: #2aa198;">'file'</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #859900; font-weight: bold;">if</span> os.path.isfile<span style="color: #2aa198;">(</span><span style="color: #2aa198;">"one_pixel_rank_results.pkl"</span><span style="color: #2aa198;">)</span>:
+    <span style="color: #268bd2;">f</span> = <span style="color: #839496; font-weight: bold;">open</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">"one_pixel_rank_results.pkl"</span>,<span style="color: #2aa198;">'rb'</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">result</span> = pickle.load<span style="color: #2aa198;">(</span>f<span style="color: #2aa198;">)</span>
+    f.close<span style="color: #2aa198;">()</span>
+<span style="color: #859900; font-weight: bold;">else</span>:
+    <span style="color: #268bd2;">result</span> = attack<span style="color: #2aa198;">(</span>original_img, model, <span style="color: #6c71c4;">10</span>, pixel_count=<span style="color: #6c71c4;">1</span>, verbose=<span style="color: #268bd2; font-weight: bold;">False</span><span style="color: #2aa198;">)</span>
+    <span style="color: #268bd2;">f</span> = <span style="color: #839496; font-weight: bold;">open</span><span style="color: #2aa198;">(</span><span style="color: #2aa198;">"one_pixel_rank_results.pkl"</span>,<span style="color: #2aa198;">'wb'</span><span style="color: #2aa198;">)</span>
+    pickle.dump<span style="color: #2aa198;">(</span>result,f<span style="color: #2aa198;">)</span>
+    f.close<span style="color: #2aa198;">()</span>
+
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'Old Rank: (%.f)'</span> % <span style="color: #b58900;">(</span>result<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'original_score'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>result<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'original_image'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_title<span style="color: #2aa198;">(</span><span style="color: #2aa198;">'New Rank: (%.f)'</span> % <span style="color: #b58900;">(</span>result<span style="color: #268bd2;">[</span><span style="color: #2aa198;">'new_score'</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>deprocess_image<span style="color: #b58900;">(</span>np.array<span style="color: #268bd2;">(</span><span style="color: #6c71c4;">[</span>result<span style="color: #859900;">[</span><span style="color: #2aa198;">'attacked_image'</span><span style="color: #859900;">]</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">)</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/LInSxc.png" alt="LInSxc.png" />
+</p>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-ipython"><span style="color: #268bd2;">pixel</span> = result<span style="color: #2aa198;">[</span><span style="color: #2aa198;">'attack'</span><span style="color: #2aa198;">]</span>.x
+
+<span style="color: #859900; font-weight: bold;">import</span> math
+
+<span style="color: #268bd2;">attack_x</span> = math.floor<span style="color: #2aa198;">(</span>pixel<span style="color: #b58900;">[</span><span style="color: #6c71c4;">1</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">attack_y</span> = math.floor<span style="color: #2aa198;">(</span>pixel<span style="color: #b58900;">[</span><span style="color: #6c71c4;">0</span><span style="color: #b58900;">]</span><span style="color: #2aa198;">)</span>
+
+<span style="color: #268bd2;">x</span> = deprocess_image<span style="color: #2aa198;">(</span>np.array<span style="color: #b58900;">(</span><span style="color: #268bd2;">[</span>result<span style="color: #6c71c4;">[</span><span style="color: #2aa198;">'attacked_image'</span><span style="color: #6c71c4;">]</span><span style="color: #268bd2;">]</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+<span style="color: #268bd2;">_</span>, <span style="color: #268bd2;">axs</span>= plt.subplots<span style="color: #2aa198;">(</span><span style="color: #6c71c4;">1</span>,<span style="color: #6c71c4;">2</span>, figsize=<span style="color: #b58900;">(</span><span style="color: #6c71c4;">8</span>,<span style="color: #6c71c4;">10</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.add_patch<span style="color: #2aa198;">(</span>patches.Rectangle<span style="color: #b58900;">(</span><span style="color: #268bd2;">(</span>attack_x-<span style="color: #6c71c4;">15</span>,attack_y-<span style="color: #6c71c4;">15</span><span style="color: #268bd2;">)</span>,<span style="color: #6c71c4;">30</span>,<span style="color: #6c71c4;">30</span>,linewidth=<span style="color: #6c71c4;">1</span>,edgecolor=<span style="color: #2aa198;">'r'</span>,facecolor=<span style="color: #2aa198;">'none'</span><span style="color: #b58900;">)</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_xlim<span style="color: #2aa198;">(</span>attack_x-<span style="color: #6c71c4;">15</span>,attack_x+<span style="color: #6c71c4;">15</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.set_ylim<span style="color: #2aa198;">(</span>attack_y+<span style="color: #6c71c4;">15</span>,attack_y-<span style="color: #6c71c4;">15</span><span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">0</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>x<span style="color: #2aa198;">)</span>
+axs<span style="color: #2aa198;">[</span><span style="color: #6c71c4;">1</span><span style="color: #2aa198;">]</span>.imshow<span style="color: #2aa198;">(</span>x<span style="color: #2aa198;">)</span>;
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="/files/KJVqxa.png" alt="KJVqxa.png" />
+</p>
+</div>
+
+<p>
+The eventual ranking isn't quite as good in this case but that isn't really
+surprising given that we made the optimisation task harder.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgd77846e" class="outline-3">
+<h3 id="orgd77846e">Conclusion</h3>
+<div class="outline-text-3" id="text-orgd77846e">
+<p>
+I hope you find this topic as interesting as I do. Let's quickly summarise what
+has been covered:
+</p>
+
+<ol class="org-ol">
+<li>Classifying an image using Inception V3</li>
+<li>Creating a "cat engine" that ranks pictures based on how like a cat the
+picture is</li>
+<li>Using gradient descent to change the predicted category for an image</li>
+<li>Using gradient descent to maximise the cat score for an image</li>
+<li>How to use differential evolution to maximise the score when we don't know
+the gradients</li>
+<li>Finally, using differential evolution to maximise the rank of an image in the
+cat engine.</li>
+</ol>
+
+<p>
+The early topics are useful general knowledge for anyone who works with data
+these days; I expect that tweaking neural nets that have been pre-trained by the
+tech giants will become a larger and larger part of normal data work as machine
+learning develops and grows into new areas.
+</p>
+
+<p>
+The later topics introduce a more general optimisation approach (differential
+evolution) and demonstrate how to use it against our toy ranking engine. This
+leads to two further questions about real world uses
+</p>
+</div>
+
+<div id="outline-container-orgb133c4d" class="outline-4">
+<h4 id="orgb133c4d">1. What else can differential evolution be used to optimise?</h4>
+<div class="outline-text-4" id="text-orgb133c4d">
+<p>
+Differential evolution can be used for any optimisation where there are defined
+inputs and a single score function to maximise/minimise.
+</p>
+
+<p>
+I suspect that there will be some problems that meet this criteria where
+differential evolution will not find good results; the "shape" of the score
+function will have to be such that the merging/breeding of agents in the genetic
+algorithm is likely to lead to a better score. I get the impression that this is
+likely to be the case for many real world problems but I don't really have a
+good grasp on why this is or what kind of problems are likely to be amenable to
+this approach.
+</p>
+
+<p>
+The big obstacle to real life use of differential evolution for online marketing
+tasks is that there is rarely a situation where you can give some inputs and
+then get immediate feedback on the outputs. A delay in feedback will slow down
+the differential evolution algorithm significantly. A similar issue,
+particularly for SEO, is that of noisy feedback; when we see the outputs of an
+algorithm there is often a load of other stuff going on too so it is harder to
+say for sure that the output is 100% the result of the input. This can also be
+simulated when optimising for the cat engine; I'll leave this as an exercise for
+the interested reader and might return to it in a later post.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5a96a00" class="outline-4">
+<h4 id="org5a96a00">2. Can we apply it to real life SEO?</h4>
+<div class="outline-text-4" id="text-org5a96a00">
+<p>
+In order to be able to use differential evolution in our toy example we narrowed
+down the search space to look for only single pixel changes. We would have to go
+through a similar step before using this algorithm to optimise a web page.
+</p>
+
+<p>
+What is the web page equivalent of a pixel?
+</p>
+
+<p>
+It could be a single character in the HTML. But in a lot of cases changing a
+single character will just lead to a badly formed page. Or it could be a single
+DOM element. But DOM elements form a tree rather than an array so there would
+have to be some kind of funky conversion going on before this could be used as
+an input to the differential evolution algorithm. I'm sure none of this is
+impossible, but it does make things more difficult.
+</p>
+
+<p>
+Perhaps a more realistic optimisation scenario would be optimising content
+within a template. This would constrain the input a bit more but, if we're
+talking about optimising text, it would still mostly lead to nonsense or
+malformed output.
+</p>
+
+<p>
+    In short, I think this is a long way from anything that you can use to directly
+    rank higher in real life. However, there might be other things you can optimise
+    using differential evolution and these things could (indirectly) lead to an
+    increase in traffic, user satisfaction etc.
+</p>
+</div>
+</div>
+</div>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/solarized-light.min.css" crossorigin="anonymous" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/languages/python.min.js" crossorigin="anonymous"></script>
+<script>
+ hljs.initHighlightingOnLoad();
+$(function() {
+     $("button.allcode").click(function() {
+         $("pre.src").toggle('fast');
+         button = $(this).text()
+         if(button == "Hide all code"){
+           $(this).text("Show all code");
+         } else {
+           $(this).text("Hide all code");
+         }
+     });
+
+     $("div.org-src-container").prepend('<button class="btn btn-a btn-sm smooth codesection">Toggle code</button>');
+
+     $("button.codesection").click(function() {
+         $(this).parent().children("pre.src").toggle('fast');
+     });
+
+
+});
+</script>

@@ -245,7 +245,7 @@ _, axs= plt.subplots(1,2, figsize=(8,10))
 axs[0].set_title('Most cat like: %s' % (top['total']))
 axs[0].imshow(deprocess_image(preprocess_image(top['file'])))
 axs[1].set_title('Least cat like: %s' % (bottom['total']))
-axs[1].imshow(deprocess_image(preprocess_image(bottom['file'])))
+axs[1].imshow(deprocess_image(preprocess_image(bottom['file'])));
 #+end_src
 
 #+RESULTS:
@@ -845,8 +845,8 @@ axs[1].imshow(deprocess_image(np.array([result['attacked_image']])));
 
 #+RESULTS:
 :RESULTS:
-# Out[184]:
-[[file:./obipy-resources/0Y5bpf.png]]
+# Out[204]:
+[[file:./obipy-resources/vU57Io.png]]
 :END:
 
 #+begin_src ipython :session :exports both :results raw drawer
@@ -868,6 +868,78 @@ axs[1].imshow(x);
 
 #+RESULTS:
 :RESULTS:
-# Out[186]:
-[[file:./obipy-resources/T5jdds.png]]
+# Out[205]:
+[[file:./obipy-resources/BWbh6y.png]]
 :END:
+
+The eventual ranking isn't quite as good in this case but that isn't really
+surprising given that we made the optimisation task harder.
+
+** Conclusion
+I hope you find this topic as interesting as I do. Let's quickly summarise what
+has been covered:
+
+1. Classifying an image using Inception V3
+2. Creating a "cat engine" that ranks pictures based on how like a cat the
+   picture is
+3. Using gradient descent to change the predicted category for an image
+4. Using gradient descent to maximise the cat score for an image
+5. How to use differential evolution to maximise the score when we don't know
+   the gradients
+6. Finally, using differential evolution to maximise the rank of an image in the
+   cat engine.
+
+The early topics are useful general knowledge for anyone who works with data
+these days; I expect that tweaking neural nets that have been pre-trained by the
+tech giants will become a larger and larger part of normal data work as machine
+learning develops and grows into new areas.
+
+The later topics introduce a more general optimisation approach (differential
+evolution) and demonstrate how to use it against our toy ranking engine. This
+leads to two further questions about real world uses
+
+*** 1. What else can differential evolution be used to optimise?
+Differential evolution can be used for any optimisation where there are defined
+inputs and a single score function to maximise/minimise.
+
+I suspect that there will be some problems that meet this criteria where
+differential evolution will not find good results; the "shape" of the score
+function will have to be such that the merging/breeding of agents in the genetic
+algorithm is likely to lead to a better score. I get the impression that this is
+likely to be the case for many real world problems but I don't really have a
+good grasp on why this is or what kind of problems are likely to be amenable to
+this approach.
+
+The big obstacle to real life use of differential evolution for online marketing
+tasks is that there is rarely a situation where you can give some inputs and
+then get immediate feedback on the outputs. A delay in feedback will slow down
+the differential evolution algorithm significantly. A similar issue,
+particularly for SEO, is that of noisy feedback; when we see the outputs of an
+algorithm there is often a load of other stuff going on too so it is harder to
+say for sure that the output is 100% the result of the input. This can also be
+simulated when optimising for the cat engine; I'll leave this as an exercise for
+the interested reader and might return to it in a later post.
+
+*** 2. Can we apply it to real life SEO?
+In order to be able to use differential evolution in our toy example we narrowed
+down the search space to look for only single pixel changes. We would have to go
+through a similar step before using this algorithm to optimise a web page.
+
+What is the web page equivalent of a pixel?
+
+It could be a single character in the HTML. But in a lot of cases changing a
+single character will just lead to a badly formed page. Or it could be a single
+DOM element. But DOM elements form a tree rather than an array so there would
+have to be some kind of funky conversion going on before this could be used as
+an input to the differential evolution algorithm. I'm sure none of this is
+impossible, but it does make things more difficult.
+
+Perhaps a more realistic optimisation scenario would be optimising content
+within a template. This would constrain the input a bit more but, if we're
+talking about optimising text, it would still mostly lead to nonsense or
+malformed output.
+
+In short, I think this is a long way from anything that you can use to directly
+rank higher in real life. However, there might be other things you can optimise
+using differential evolution and these things could (indirectly) lead to an
+increase in traffic, user satisfaction etc.
