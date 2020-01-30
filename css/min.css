@@ -167,7 +167,8 @@ input[type=text] {
 
 .nav .pagename {
     font-size: 22px;
-    top: 1px
+    top: 1px;
+    font-weight: bold;
 }
 
 .btn.btn-close {
