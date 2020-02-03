@@ -72,14 +72,9 @@
 
 </head>
 <body>
-  <div class="container">
-     <div class="logo">
-        E-Analytica
-     </div>
-  </div>
   <nav class="nav" tabindex="-1" >
      <div class="container">
-         <a href="/" >Home</a>
+         <a class="pagename current" href="/" >E-Analytica</a>
          <a href="/about/" >About</a>
          <a href="/services/" >Services</a>
          <a href="/blog/" >Archive</a>
@@ -560,7 +555,7 @@
 <div class="chunk" id="unnamed-chunk-37"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">&gt; </span>    <span class="hl com"># select the first column</span>
 <span class="hl std">&gt; </span>    <span class="hl std">foods[,</span><span class="hl num">1</span><span class="hl std">]</span>
 </pre></div>
-<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner   
+<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner
 ## Levels: Breakfast Dinner Lunch
 </pre></div>
 </div></div>
@@ -573,7 +568,7 @@
     <p>An easier way to select a column is like this:</p>
 <div class="chunk" id="unnamed-chunk-39"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">&gt; </span>    <span class="hl std">foods</span><span class="hl opt">$</span><span class="hl std">meal</span>
 </pre></div>
-<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner   
+<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner
 ## Levels: Breakfast Dinner Lunch
 </pre></div>
 </div></div>
@@ -582,7 +577,7 @@
     <p>You can also select a column like this:</p>
 <div class="chunk" id="unnamed-chunk-40"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">&gt; </span>    <span class="hl std">foods[[</span><span class="hl str">'meal'</span><span class="hl std">]]</span>
 </pre></div>
-<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner   
+<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner
 ## Levels: Breakfast Dinner Lunch
 </pre></div>
 </div></div>
@@ -598,7 +593,7 @@
 <span class="hl std">+ </span>    <span class="hl std">}</span>
 <span class="hl std">&gt; </span>    <span class="hl kwd">getColumn</span><span class="hl std">(foods,</span><span class="hl str">&quot;meal&quot;</span><span class="hl std">)</span>
 </pre></div>
-<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner   
+<div class="output"><pre class="knitr r">## [1] Breakfast Breakfast Breakfast Lunch     Dinner
 ## Levels: Breakfast Dinner Lunch
 </pre></div>
 </div></div>
@@ -795,12 +790,12 @@
 <span class="hl std">&gt; </span>    <span class="hl kwd">head</span><span class="hl std">(hospitaladmissions)</span>
 </pre></div>
 <div class="output"><pre class="knitr r">##     ONSCode CommissioningRegionCode CommissioningRegionName
-## 1 E38000056                     01C   NHS Eastern Cheshire 
-## 2 E38000151                     01R     NHS South Cheshire 
-## 3 E38000189                     02D         NHS Vale Royal 
-## 4 E38000194                     02E         NHS Warrington 
-## 5 E38000196                     02F      NHS West Cheshire 
-## 6 E38000208                     12F             NHS Wirral 
+## 1 E38000056                     01C   NHS Eastern Cheshire
+## 2 E38000151                     01R     NHS South Cheshire
+## 3 E38000189                     02D         NHS Vale Royal
+## 4 E38000194                     02E         NHS Warrington
+## 5 E38000196                     02F      NHS West Cheshire
+## 6 E38000208                     12F             NHS Wirral
 ##   TotalAdmissions MaleAdmissions FemaleAdmissions  X AdmissionsPer100K
 ## 1              20             NA               NA NA                10
 ## 2              43             14               29 NA                24
@@ -916,10 +911,10 @@
       scope of this tutorial.</p>
 <div class="chunk" id="unnamed-chunk-63"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">&gt; </span>    <span class="hl kwd">library</span><span class="hl std">(googleAnalyticsR)</span>
 </pre></div>
-<div class="message"><pre class="knitr r">## 2019-09-23 09:58:32&gt; Default Google Project for googleAnalyticsR is now set.  
-##  This is shared with all googleAnalyticsR users. 
-##  If making a lot of API calls, please: 
-##  visit: https://bit.ly/2Evk6hn 
+<div class="message"><pre class="knitr r">## 2019-09-23 09:58:32&gt; Default Google Project for googleAnalyticsR is now set.
+##  This is shared with all googleAnalyticsR users.
+##  If making a lot of API calls, please:
+##  visit: https://bit.ly/2Evk6hn
 ##  for instructions on setting your own Google Project
 </pre></div>
 </div></div>
@@ -968,11 +963,11 @@
 </div></div>
     <p>You will now have a data frame called "sessions" with the daily sessions total for the
       last two years.</p>
-<div class="chunk" id="unnamed-chunk-71"><div class="rcode"><div class="message"><pre class="knitr r">## 
+<div class="chunk" id="unnamed-chunk-71"><div class="rcode"><div class="message"><pre class="knitr r">##
 ## Attaching package: 'lubridate'
 </pre></div>
 <div class="message"><pre class="knitr r">## The following object is masked from 'package:base':
-## 
+##
 ##     date
 </pre></div>
 </div></div>
@@ -1247,7 +1242,7 @@
 ##   as.zoo.data.frame zoo
 </pre></div>
 <div class="message"><pre class="knitr r">## Registered S3 methods overwritten by 'forecast':
-##   method             from    
+##   method             from
 ##   fitted.fracdiff    fracdiff
 ##   residuals.fracdiff fracdiff
 </pre></div>
