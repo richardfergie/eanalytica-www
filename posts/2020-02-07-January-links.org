@@ -1,0 +1,79 @@
+---
+title: Links from January
+---
+Here is a list of some of the links that I saved during January
+
+*** [[https://gowers.wordpress.com/2007/09/15/discovering-a-formula-for-the-cubic/][Discovering a formula for the cubic]]
+
+In the UK you learn the formula for the roots of a quadratic equation in high
+school. At my school we were also taught the "completing the square" method for
+solving a quadratic equation which can also be used to derive the quadratic
+formula.
+
+At university I learned that formulae also existed for the roots of cubic,
+quartic and quintic equations and I remember proving in a group theory course
+that no such formula can exist for polynomials of a higher degree than this. But
+I never learned what the formula for solving a cubic (or anything else) was.
+
+This post shows that you can easily derive the quadratic formula if you assume a
+certain form of the results (which is kind of obvious because you know the two
+roots are equidistant from the min/max point on the parabola). Then it shows how
+to go through a similar process for the cubic. It isn't quite so easy because it
+is not as obvious what form the roots should take.
+
+*** [[https://www.theverge.com/2018/7/16/17566276/cockygate-amazon-kindle-unlimited-algorithm-self-published-romance-novel-cabal][How a cabal of romance writers cashed in on Amazon Kindle Unlimited]]
+
+A fascinating look into a world I had no idea existed. Amazon share royalties
+from the Kindle unlimited platform based on pages read so authors optimise their
+works accordingly. There is also "cockygate" but I think this has just been
+included to add a bit of slightly rude colour.
+
+*** [[https://nostalgebraist.tumblr.com/post/189965935059/human-psycholinguists-a-critical-appraisal][human psycholinguists: a critical appraisal]]
+
+#+BEGIN_QUOTE
+I’ve discussed GPT-2 and BERT and other instances of the Transformer
+architecture a lot on this blog.  As you can probably tell, I find them very
+interesting and exciting.  But not everyone has the reaction I do, including
+some people who I think ought to have that reaction.
+
+
+Whatever else GPT-2 and friends may or may not be, I think they are clearly a
+source of fascinating and novel scientific evidence about language and the mind.
+That much, I think, should be uncontroversial.  But it isn’t.
+#+END_QUOTE
+
+GTP-2 and BERT can write some pretty realistic looking simulated text. Some
+linguists say this is only because of the huge amounts of training data used so
+this can't tell us very much about language and how human brains process it. The
+nostalgebraist (the author) argues that we probably should be able to learn
+something about it because GPT-2 isn't just any network; it has a specific
+architecture that works better than other networks that have been tried in the
+past.
+
+*** [[https://thehustle.co/the-economics-of-all-you-can-eat-buffets/][The economics of all-you-can-eat buffets]]
+
+
+I love an all you can eat buffet (although I don't go as crazy with them as I
+did when I was younger) and, like anyone who has ever eaten a lot at one I've
+wondered "are they losing money on me?". This link doesn't fully answer that
+question (for which the answer is definitely "it depends"!) but it does go into
+a few of the factors that make a buffet profitable or not.
+
+*** [[https://danluu.com/wat/][Normalization of deviance ]]
+
+I first heard about normalisation of deviance in one of Feynmans's essays on the
+Challenger disaster. IIRC there were some components with a built in safety
+margin (maybe the o-rings?) and although these weren't failing the safety margin
+was being used up. Technicians dismissed this as "within the margin of safety"
+but if the component had been designed correctly and was being used under the
+conditions it was designed for then the safety margin would never be reached.
+Instead the deviance was normalised and people stopped worrying about it with
+disasterous results.
+
+In this link Dan Luu has /many/ examples from tech.
+
+*** [[https://towardsdatascience.com/dcgans-generating-dog-images-with-tensorflow-and-keras-fb51a1071432][DCGANs — Generating Dog Images with Tensorflow and Keras]]
+
+
+I found this while working on my [[https://www.eanalytica.com/blog/CEO-Cat-Engine-Optimisation/][Cat Engine Optimisation]] post, thinking that
+this might be another technique to explore one day.
