@@ -50,6 +50,15 @@ notesRoute =
       `composeRoutes` gsubRoute ".lhs" (const "/index.html")
       `composeRoutes` gsubRoute ".org" (const "/index.html")
 
+pagesRoute :: Routes
+pagesRoute =
+  gsubRoute "pages/" (const "")
+      `composeRoutes` gsubRoute ".md" (const "/index.html")
+      `composeRoutes` gsubRoute ".markdown" (const "/index.html")
+      `composeRoutes` gsubRoute ".html" (const "/index.html")
+      `composeRoutes` gsubRoute ".lhs" (const "/index.html")
+      `composeRoutes` gsubRoute ".org" (const "/index.html")
+
 slashUrlsCompiler :: Item String -> Compiler (Item String)
 slashUrlsCompiler item = do
      route <- getRoute $ itemIdentifier item
@@ -149,16 +158,10 @@ main = hakyll $ do
       route rawRoute
       compile copyFileCompiler
 
-    match (fromList ["about.rst"]) $ do
-        route   $ setExtension "html"
-        compile $ pandocCompiler
-            >>= loadAndApplyTemplate "templates/default.html" defaultContext
-            >>= relativizeUrls
-
     match "google49c11d79480ceef2.html" $ do
       route idRoute
       compile copyFileCompiler
-      
+
     match "robots.txt" $ do
       route idRoute
       compile copyFileCompiler
@@ -243,6 +246,16 @@ main = hakyll $ do
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= slashUrlsCompiler
 
+    match "pages/*" $ do
+        route pagesRoute
+        compile $ do
+          fpath <- getResourceFilePath
+          let basepath = takeBaseName fpath
+          let ctx = field basepath (const $ return basepath) <> defaultContext
+          pandocCompiler
+            >>= loadAndApplyTemplate "templates/default.html" ctx
+            >>= slashUrlsCompiler
+{-
     match "contact.html" $ do
       route $ constRoute "contact/index.html"
       let ctx = field "contact" (const $ return "contact") <> defaultContext
@@ -274,7 +287,7 @@ main = hakyll $ do
         getResourceBody
           >>= loadAndApplyTemplate "templates/default.html" defaultContext
           >>= slashUrlsCompiler
-
+-}
     match "favicon.ico" $ do
       route   idRoute
       compile copyFileCompiler
