@@ -255,39 +255,7 @@ main = hakyll $ do
           pandocCompiler
             >>= loadAndApplyTemplate "templates/default.html" ctx
             >>= slashUrlsCompiler
-{-
-    match "contact.html" $ do
-      route $ constRoute "contact/index.html"
-      let ctx = field "contact" (const $ return "contact") <> defaultContext
-      compile $ do
-            getResourceBody
-                >>= loadAndApplyTemplate "templates/default.html" ctx
-                >>= slashUrlsCompiler
 
-    match "services.html" $ do
-      route $ constRoute "services/index.html"
-      let ctx = field "services" (const $ return "services") <> defaultContext
-      compile $ do
-            getResourceBody
-                >>= loadAndApplyTemplate "templates/default.html" ctx
-                >>= slashUrlsCompiler
-
-    match "about.html" $ do
-      route $ constRoute "about/index.html"
-      let ctx = field "about" (const $ return "about") <>
-                defaultContext
-      compile $ do
-            getResourceBody
-                >>= loadAndApplyTemplate "templates/default.html" ctx
-                >>= slashUrlsCompiler
-
-    match "logs.html" $ do
-      route $ constRoute "logs/index.html"
-      compile $ do
-        getResourceBody
-          >>= loadAndApplyTemplate "templates/default.html" defaultContext
-          >>= slashUrlsCompiler
--}
     match "favicon.ico" $ do
       route   idRoute
       compile copyFileCompiler
