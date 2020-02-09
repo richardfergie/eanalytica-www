@@ -23,3 +23,12 @@ R/*/figure/
 R/*/cache/
 R/*/.Rhistory
 R/*/.RData
+notebooks/*/.ipynb_checkpoints
+notebooks/ceo/CAT_*
+notebooks/ceo/auto
+notebooks/*/obipy-resources
+notebooks/*/*.pkl
+stack.yaml.lock
+log_analysis/function.zip
+log_analysis/packages
+notebooks/ceo/*.jpg
