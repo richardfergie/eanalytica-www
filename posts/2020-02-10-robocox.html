@@ -1,0 +1,113 @@
+---
+title: "Robocox: Fine tuning GTP-2 for rowing"
+---
+<p>
+    At the moment, my main hobby is rowing. I mainly race and train in the single scull, a boat class for
+    one person, but I have a great deal of affection for the eight person boat class (as seen in the boat
+    race).
+</p>
+<p>
+    One of the unique things about the eight is that there is a coxswain (cox) who steers the boat. He or she
+    also has a microphone which is linked to speakers in the hull that they can use to communicate with and
+    motivate the rowers.
+</p>
+<p>
+    I have made a bot that imitates the styles and phrases often used by coxes during races.
+</p>
+<p>
+    You can read more about how I did this below or you can click the button to read what RoboCox
+    has to say.
+</p>
+<em>Generating the text takes a while. There will be a delay of 3-5 minutes after pressing the button. There will probably also be bad language in the output</em>
+<button id="thebutton" class="btn btn-a btn-sm smooth">Generate</button>
+<div id="response">
+</div>
+<h3>How it all works</h3>
+<p>
+    An organisation called <a href="https://openai.com/">OpenAI</a> trained a machine learning model on a
+    very large amount of text from the Internet.
+</p>
+<blockquote>
+    We’ve trained a large-scale unsupervised language model which generates coherent paragraphs of text, achieves state-of-the-art performance on many language modeling benchmarks, and performs rudimentary reading comprehension, machine translation, question answering, and summarization—all without task-specific training.
+</blockquote>
+<p>
+    The model they trained is called GTP-2 and some versions of it are open source and available for free.
+</p>
+<p>
+    The model is large (the one used here has 128 million parameters) and, as mentioned before, the amount
+    of text used to train it is HUGE so it would be quite difficult for someone like me to duplicate their work
+    starting from nothing. EDIT: <a href="https://blog.floydhub.com/gpt2/">maybe not that difficult, just extremely
+    expensive!</a>
+</p>
+<p>
+    What someone like me can do is to fine tune the existing model on my own data. This is also called "transfer
+    learning" because some of the knowledge from the original network is "transferred" onto a new problem.
+</p>
+<p>
+    This is easier to understand by considering something like ImageNet which classifies images. This is a
+    deep neural network so there are many layers. The top layers take input from layers lower down and use it
+    to make the classification. What are the lower layers doing?
+</p>
+<p>
+    In ImageNet, layers near the top seem to recognise features in images like edges of objects or textures of
+    surfaces. Then these features are combined to make the prediction at the end. The idea of transfer learning
+    is to use the lower layers that recognise these features but to change the final layers that combine the
+    features into a prediction.
+</p>
+<p>
+    For ImageNet this might mean making a classifier for some new objects (e.g. <a href="https://www.tensorflow.org/tutorials/images/transfer_learning">cats and dogs</a>) using the more general features of the original model.
+</p>
+<p>
+    For the GPT-2 example here, the original model produces text that is representative of a broad swathe of
+    the internet. This has all the problems you might expect:
+    <blockquote>
+        72% of "why" questions in SQuAD to be answered "to kill american people", and the GPT-2 language model to spew racist output even when conditioned on non-racial contexts
+    </blockquote>
+    From <a href="https://arxiv.org/abs/1908.07125">Universal Adversarial Triggers for Attacking and Analyzing NLP</a>
+</p>
+<p>
+    I took this model and then "transferred" the learning onto coxing by fine tuning based on transcripts of what
+    coxes have actually said during races.
+</p>
+<p>
+    There is an open source project called <a href="https://github.com/minimaxir/gpt-2-simple">GPT-2 Simple</a> that
+    made this very easy to do. One surprising thing is how little extra training data was required for this; only
+    1231 lines of text representing just four races!
+</p>
+<p>
+    I am slowly increasing the size of the training corpus which should improve results somewhat, but the current
+    version isn't bad for a weekend project!
+</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script>
+ $(function () {
+     $('#thebutton').click(function() {
+         $.ajax({
+             type: "POST",
+             url: "https://robocox-v4e5t2rofa-uc.a.run.app",
+             beforeSend: function (data) {
+                 $('#response').fadeOut("fast")
+                 $('#response').html("")
+                 $('#response').addClass("is-loading");
+                 $('#response').fadeIn("fast")
+                 $('#thebutton').prop("disabled", true);
+             },
+             success: function (data) {
+                 $('#response').removeClass("is-loading");
+                 $('#thebutton').prop("disabled", false);
+                 $('#thebutton').html("Again!");
+                 var gentext = data.text;
+                 var gentext = gentext.replace(/\n\n/g, "<div><br></div>").replace(/\n/g, "<div></div>");
+                 var html = '<div class=\"gen-box\">' + gentext + '</div><div class="gen-border"></div>';
+                 $('#response').html(html)
+             },
+             error: function (jqXHR, textStatus, errorThrown) {
+                 $('#response').removeClass("is-loading");
+                 $('#thebutton').prop("disabled", false);
+                 var html = '<div class="gen-box warning">There was an error generating the text! Please try again!</div><div class="gen-border"></div>';
+                 $('#response').html(html)
+             }
+         });
+     });
+ });
+</script>

@@ -375,3 +375,17 @@ div.herogrid input{
 div.herogrid textarea{
     box-sizing:border-box;
 }
+.is-loading{
+    display: block;
+    height: 85px;
+    width: 85px;
+    background: url("/files/loading.svg");
+    background-size: 85px 85px;
+}
+button:disabled {
+  background: grey;
+}
+div.gen-box {
+    border: 1px lightgrey;
+    padding: 10px;
+}
