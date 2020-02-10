@@ -386,6 +386,7 @@ button:disabled {
   background: grey;
 }
 div.gen-box {
-    border: 1px lightgrey;
+    border: 1px solid lightgrey;
     padding: 10px;
+    margin: 10px;
 }
