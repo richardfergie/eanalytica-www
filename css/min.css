@@ -179,7 +179,7 @@ input[type=text] {
     display: none
 }
 
-@media(max-width:500px) {
+@media(max-width:540px) {
     .btn.btn-close {
         display: block
     }
@@ -389,4 +389,32 @@ div.gen-box {
     border: 1px solid lightgrey;
     padding: 10px;
     margin: 10px;
+}
+.hero h1 {
+    font-size: 1.5em;
+}
+
+@media(max-width:520px) {
+.hero h1 {
+    font-size: 2em;
+}
+}
+@media(max-width:410px) {
+    .nav .pagename {
+        font-size:15px;
+        padding-top:12px;
+        padding-bottom:20px;
+    }
+}
+.headshot{
+ width: 200px;
+ height: 200px;
+ display: block;
+ border-radius: 100px;
+ -webkit-border-radius: 100px;
+ -moz-border-radius: 100px;
+ margin-bottom: 5px;
+}
+figcaption {
+    font-size: 0.8em;
 }
