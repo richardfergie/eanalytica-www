@@ -406,7 +406,7 @@ div.gen-box {
         padding-bottom:20px;
     }
 }
-.headshot{
+img.headshot{
  width: 200px;
  height: 200px;
  display: block;
@@ -417,4 +417,6 @@ div.gen-box {
 }
 figcaption {
     font-size: 0.8em;
+    width: 200px;
+    text-align: center;
 }
