@@ -1,0 +1,75 @@
+---
+title: Calculus and Marketing Spend
+---
+
+Before I went on holiday [[https://mackgrenfell.com/blog/mathematical-marketing-one-piece-of-calculus-that-can-change-the-way-you-advertise][this post]] by Mack Grenfell was doing the rounds about
+how to use calculus to pick the optimum value of marketing spend to maximise
+profit.
+
+As is often the case with online writing that I think is mostly good but which
+misses some important details I am not the target audience for that post but I
+still feel a response is worse writing.
+
+First of all, I think Mack does a very good job (better than I have ever done)
+of explaining why this is an important problem; there is a relationship between
+the amount spent on marketing and the return from it and this relationship has
+diminishing returns (i.e. you spend money on the best stuff first so extra money
+you add in after that won't quite perform so well).
+
+If you can model this relationship between the level of spend and the number of
+conversions then you can use calculus to figure out at which point on the curve
+your maximum profit lies.
+
+One interesting question is what kind of model should you use for this
+relationship?
+
+#+BEGIN_QUOTE
+Switch the line of best fit's setting to logarithmic, it looks like this line
+fits the data much more closely
+#+END_QUOTE
+
+Mack Grenfell uses a logarithmic curve for this which has a few interesting
+properties. Let's follow the assumptions of the model for a bit:
+
+1. The formula is $\alpha + \beta ln(spend + \gamma)$ where $\alpha$, $\beta$ and $\gamma$ are constants. (Mack
+   omits the constant $\gamma$ but I have included it because you can use it to make
+   sure the predicted number of conversions is never negative even for low
+   spends).
+2. Ignoring the $\alpha$ and $\gamma$ terms, this tells us that doubling spend will increase
+   conversions by $\beta ln(2)$ because $\beta ln(2 spend) = \beta ln(2) + \beta ln(spend)$
+   (this is part of how the $ln$ function is defined)
+3. Which means that doubling spend will always increase conversions by the same
+   amount no matter what spend you start with.
+
+Now we have a vague idea of what Mark's model says about how revenue/conversions
+will change as spend increases we can ask ourselves "is this realistic?" or "is
+this true?". This helps decide if it is a good model or not.
+
+For me, this does not smell right. It says that the increase in conversions
+going from $1000 to $2000 is the same amount as going from $10,000 to $20,000
+which doesn't match up to my experience.
+
+*** The Square Root Rule
+Instead of a logarithmic function I prefer to use the square root function. I
+first heard about the "square root rule" from [[https://twitter.com/minethatdata][Kevin Hillstrom]]; it simply says
+that revenue/conversion is equal to $\alpha spend^0.5$. One advantage of this is
+that there are fewer parameters so it is dead easy to fit but that isn't really
+the main point here.
+
+A more general form is $\alpha spend^\beta$. I just find that 0.5 is a good
+starting value for estimates when you haven't done any testing yet.
+
+For the square root rule a doubling of spend will always lead to a ~40% increase
+in revenue/conversions. In the more general case, revenue/conversion will
+increase by a factor of $2^\beta$ after doubling the spend.
+
+This model is a simplification of the [[https://en.wikipedia.org/wiki/Cobb%E2%80%93Douglas_production_function][Cobb Douglas production function]] which is
+used to predict economic output given inputs of capital and labour. It has just
+occurred to me that this could also be used to balance the split between media
+spend (capital) and management fees (labour) but I guess I will leave that for
+another post!
+
+*** Bid Simulator
+I use the square root rule when I'm making proposals or for non Google Ads
+channels. Within Google Ads you are better looking at the data from bid
+simulator directly.
