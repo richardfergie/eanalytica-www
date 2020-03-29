@@ -4,6 +4,7 @@ jobs:
     docker:
       - image: fpco/stack-build
     steps:
+      - run: ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime
       - run: apt-get update && apt-get -qq -y install awscli
       - checkout
       - restore_cache:
