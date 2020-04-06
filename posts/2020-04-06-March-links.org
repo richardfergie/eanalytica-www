@@ -1,0 +1,58 @@
+---
+title: Links from March
+---
+
+March, particularly early March, feels like a different time. Anyway, here are
+some links I saved (only one is coronavirus related).
+
+*** [[https://searchengineland.com/the-mandalorians-guide-to-the-search-galaxy-evolving-from-sem-lone-wolf-to-company-leader-330062][The Mandalorian's Guide to Search]]
+On and off, I have worked with Andrew McGarry for over five years now so I've
+seen a bit of what is going on and what he is doing with [[https://www.mcgarryfashion.com][The McGarry Agency]].
+
+In this piece for Search Engine Land Andrew talks about some of the personal
+challenges he's faced in growing his company; particularly how the traits and
+aspects of his personality the he thought were strengths were actually holding
+him back.
+
+#+BEGIN_QUOTE
+I came to realize in my own career journey that the success we can achieve in
+our careers is influenced by our chosen identity and the work we do on a daily
+basis
+#+END_QUOTE
+
+Andrew and I do not have the same personality, but we do have some things in
+common so I wonder how many of these lessons apply to me and how important
+learning them will be for my continued growth over the next few years.
+
+*** [[https://life.spectator.co.uk/articles/why-i-regret-inventing-the-innocent-smoothie-brand/?utm_sq=gckfo9ykhs][Why I regret inventing the innocent smoothie brand]]
+The faux folksy "brand voice" of innocent [it doesn't have a capital "i" and it
+is really hard for me to write it this way] and it's many imitators is one of
+the perils of modern life. [I could write a sentence like that at the start of
+March!]
+
+The creator of the brand identity comes clean in this confessional and admits to
+regretting it all. I'm not sure I forgive him.
+
+*** [[https://www.atlasobscura.com/articles/moose-boulder-debunked][The Intrepid Mother and Son Who Unraveled a Geographic Hoax]]
+I remember hearing about "Moose Boulder" which is an island on a lake where the
+lake is contained on an island which is in another lake which is on another
+island in Lake Superior. Which is pretty cool!
+
+Turns out it is all an online hoax and this is the story of one man (and his
+Mum!) trying to figure out what was going on.
+
+*** [[https://www.scottaaronson.com/blog/?p=4695][On "armchair epidemiology"]]
+Mathematician Scott Aaronson was asked by a friend in early February what he
+thought about the risks from coronavirus. He told them that the risk from
+ordinary flu was much greater. He regrets this now and writes about how he
+should have told her something different.
+
+With hindsight, the signs of this approaching epidemic were all there in early
+February and many online commentators were (correctly) predicting what was
+coming. But official channels played down their concerns and this is the main
+reason for Aaronson's advice to his friend.
+
+#+BEGIN_QUOTE
+It’s worse to be so afraid that you fail adequately to warn your friends when
+you see an exponential function coming to kill their loved ones.
+#+END_QUOTE
