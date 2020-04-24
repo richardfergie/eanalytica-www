@@ -35,7 +35,8 @@ blogRoute :: Routes
 blogRoute  =
       gsubRoute "posts/" (const "blog/")
       `composeRoutes` cleanDate
-      `composeRoutes` gsubRoute ".markdown" (const "/index.html")
+      -- really not sure why this is necessary
+      `composeRoutes` gsubRoute ".markdown" (const ".html")
       `composeRoutes` gsubRoute ".html" (const "/index.html")
       `composeRoutes` gsubRoute ".lhs" (const "/index.html")
       `composeRoutes` gsubRoute ".org" (const "/index.html")
