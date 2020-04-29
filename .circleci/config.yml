@@ -5,17 +5,7 @@ jobs:
       - image: eanalytica/www-build
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - stack-{{ checksum "site.hs" }}-{{ checksum "eanalytica-www.cabal" }}-{{ checksum "stack.yaml" }}
-            - stack
       - run: stack install -j1 --fast
-      - save_cache:
-          key: stack-{{ checksum "site.hs" }}-{{ checksum "eanalytica-www.cabal" }}-{{ checksum "stack.yaml" }}
-          paths:
-            - .stack-work
-            - ~/.stack
-            - ~/.local/bin
       - restore_cache:
           key: sitecache-{{ checksum "site.hs" }}
       - run: ~/.local/bin/eanalytica-www build
