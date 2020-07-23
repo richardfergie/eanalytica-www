@@ -1,0 +1,107 @@
+---
+title: Cobb Douglas and Agency Fees
+---
+<p>
+    Regular readers will know I'm a big fan of the "square root rule" which is a
+    quick rule of thumb to calculate the diminishing returns from increasing
+    media spend.
+</p>
+<p>
+    The square root rule says
+    $$ Y \propto \sqrt{X} $$
+    where $Y$ is the output (e.g. conversions) and $X$ is the input (e.g. media
+    spend).
+</p>
+<p>
+    This tells you that, as a rough rule of thumb, doubling your media spend
+    will increase conversions by a factor of $$\sqrt{2} \approx 1.4$$ or 40%.
+</p>
+<p>
+    The rule is never perfectly accurate but it is a pretty good approximation
+    when you don't know very much about a channel.
+</p>
+<p>
+    I first heard about it from <a href="http://minethatdata.com">Kevin
+    Hillstrom</a> and the PPC nerds at the Rimm Kaufmann group (RIP to what was
+    once a great blog - I can't find the old posts since they got taken over).
+</p>
+<p>
+    It is also a special case of a <a
+                                           href="https://en.wikipedia.org/wiki/Cobb%E2%80%93Douglas_production_function">Cobb
+    Douglas production function</a>
+    because it uses a power law to model diminishing returns. In this post I
+    want to expand on other aspects of Cobb-Douglas with a potential application
+    to media/agency life.
+</p>
+<p>
+    The Cobb Douglas model is
+    $$ Y = KL^{\alpha}C^{\beta} $$
+    where $Y$ is the total output, $L$ is the labour input, $C$ is the capital
+    input and $\alpha$, $\beta$ are the "output elasticities". $K$ is a constant
+    that is sometimes referred to as "productivity".
+</p>
+<p>
+    This is more complicated than the square root rule because it has two
+    inputs (labour and capital) rather than just one (media spend).
+</p>
+<p>
+    The obvious way (to me!) to extend this approach to media buying it to look
+    at the inputs in terms of media spend (capital) and agency fees (labour).
+</p>
+<p>
+    Then the profitability of a campaign is
+    $$ P = KL^{\alpha}C^{\beta} - L - C $$
+</p>
+<p>
+    When is profitability maximised?
+</p>
+<p>
+    Let's make things slightly simpler by looking for the optimum fee as a
+    <em>percentage</em> of the total input. i.e. $L+C=1$. Then the equation
+    simplifies to
+    $$ P = K(1-C)^{\alpha}C^{\beta} -1 $$
+</p>
+<p>
+    Differentiating
+    $$ \frac{dP}{dC} = -K(1-C)^{\alpha-1}C^{\beta-1}(\alpha C + \beta (C-1)) $$
+    (thanks Wolfram Alpha!)
+</p>
+<p>
+    There are three zeros for this function:
+    <ol>
+        <li>$C=1$ i.e. all input is spend on media, zero on fees and the output
+            is (of course) 0.</li>
+        <li>$C=0$ i.e. all input is spent on fees and zero on media. The output
+            is (of course) 0.</li>
+        <li>$\alpha C + \beta (C-1) = 0$. This is the interesting one where
+            profit is maximised.</li>
+    </ol>
+</p>
+<p>
+    A quick rearrangement of the third equation shows that profit is maximised
+    when
+    $$C = \frac{\beta}{\alpha+\beta}$$
+</p>
+<p>
+    Remember that $\beta$ is the elasticity of media spend which, in my
+    experience, is usually around 0.5. Plugging that into the above equation and
+    simplifying gives
+    $$ C = \frac{1}{2 \alpha + 1} $$
+</p>
+<p>
+    I have <strong>no idea</strong> what the value of $\alpha$ should be. If we
+    assume that a 10% media fee is optimal (BIG if) then this implies that
+    $$ \alpha = 0.05 $$
+</p>
+<p>
+    In practical terms, this predicts that doubling an agency fee without any
+    change in media spend would increase output by a factor of
+    $$\sqrt[20]{2} \approx 1.04$$
+    or 4%.
+</p>
+<p>
+    This seems low to me.
+</p>
+<script type="text/javascript" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
